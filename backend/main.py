@@ -11,6 +11,8 @@ from pathlib import Path
 import subprocess
 import sys
 import atexit
+import threading
+import webbrowser
 import urllib.request
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
@@ -298,6 +300,14 @@ if __name__ == "__main__":
 
     try:
         import uvicorn
+
+        def open_browser():
+            try:
+                webbrowser.open('http://127.0.0.1:8000')
+            except Exception:
+                pass
+
+        threading.Timer(1.5, open_browser).start()
         uvicorn.run(app, host="127.0.0.1", port=8000)
     except KeyboardInterrupt:
         pass
