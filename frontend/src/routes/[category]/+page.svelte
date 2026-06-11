@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Plus } from 'lucide-svelte';
     import { invalidate } from '$app/navigation';
-    import { findImporter } from '$lib/importers';
+    import { findImporter, type ImportedMediaData } from '$lib/importers'; // Добавлен импорт типа
     import MediaGrid from '$lib/components/MediaGrid.svelte';
     import DetailOverlay from '$lib/components/DetailOverlay.svelte';
     import ItemModal from '$lib/components/ItemModal.svelte';
@@ -131,14 +131,23 @@
         importError = '';
         importState = 'loading';
         try {
-            const html = await fetchHtmlFromUrl(formData.source_url);
-            const data = importer.parseHtml(html, formData.source_url);
+            let importedData: ImportedMediaData;
+
+            if (importer.fetchAndParse) {
+                importedData = await importer.fetchAndParse(formData.source_url);
+            } else if (importer.parseHtml) {
+                const html = await fetchHtmlFromUrl(formData.source_url);
+                importedData = importer.parseHtml(html, formData.source_url);
+            } else {
+                throw new Error("У импортера нет метода обработки данных.");
+            }
+
             formData = {
                 ...formData,
-                title: data.title ?? formData.title,
-                description: data.description ? stripHtml(data.description) : formData.description,
-                cover_url: data.cover_url ? normalizeUrl(data.cover_url) ?? formData.cover_url : formData.cover_url,
-                source_url: data.source_url,
+                title: importedData.title ?? formData.title,
+                description: importedData.description ? stripHtml(importedData.description) : formData.description,
+                cover_url: importedData.cover_url ? normalizeUrl(importedData.cover_url) ?? formData.cover_url : formData.cover_url,
+                source_url: importedData.source_url,
             };
             sourceUrl = formData.source_url;
         } catch (err) {
@@ -149,7 +158,6 @@
         }
     }
 
-    // Modal management
     function resetForm() {
         formData = { title: '', source_url: '', cover_url: '', description: '', rating: 0, comment: '' };
         sourceUrl = '';
