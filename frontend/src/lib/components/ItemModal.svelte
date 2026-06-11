@@ -117,7 +117,7 @@
                                 Поддерживается импорт из {importer.name}
                             </p>
                         {:else if sourceUrl}
-                            <p class="text-xs text-text-muted">Вставьте ссылку на Shikimori для автоматического импорта</p>
+                            <p class="text-xs text-text-muted">Вставьте ссылку на поддерживаемый сайт для автоматического импорта</p>
                         {/if}
                         {#if importError}
                             <p class="text-xs text-danger bg-danger-soft px-3 py-2 rounded-lg">{importError}</p>
