@@ -95,7 +95,7 @@
                                 value={sourceUrl}
                                 on:input={handleSourceUrlInput}
                                 class="flex-1 bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none"
-                                placeholder="https://shikimori.io/animes/..."
+                                placeholder="https://..."
                             />
                             <button 
                                 type="button" 
