@@ -3,6 +3,7 @@ import { shikimoriImporter } from './parsers/shikimori';
 import { steamImporter } from './parsers/steam';
 import { kinopoiskImporter } from './parsers/kinopoisk';
 import { remangaImporter, remangaAlternativeImporter, remangaAlternativeRussianImporter } from './parsers/remanga';
+import { libFamilyImporter } from './parsers/libFamily';
 
 export * from './types';
 
@@ -13,6 +14,7 @@ export const importers: Importer[] = [
     remangaImporter,
     remangaAlternativeImporter,
     remangaAlternativeRussianImporter,
+    libFamilyImporter,
 ];
 
 export function findImporter(url: string | undefined): Importer | null {
