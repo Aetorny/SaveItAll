@@ -4,6 +4,8 @@ import { steamImporter } from './parsers/steam';
 import { kinopoiskImporter } from './parsers/kinopoisk';
 import { remangaImporter, remangaAlternativeImporter, remangaAlternativeRussianImporter } from './parsers/remanga';
 import { libFamilyImporter } from './parsers/libFamily';
+import { litresImporter } from './parsers/litres';
+import { chitaiGorodImporter } from './parsers/chitai-gorod';
 
 export * from './types';
 
@@ -15,6 +17,8 @@ export const importers: Importer[] = [
     remangaAlternativeImporter,
     remangaAlternativeRussianImporter,
     libFamilyImporter,
+    litresImporter,
+    chitaiGorodImporter,
 ];
 
 export function findImporter(url: string | undefined): Importer | null {
