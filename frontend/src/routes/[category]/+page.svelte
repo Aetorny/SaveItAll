@@ -1,8 +1,10 @@
 <script lang="ts">
-    import { Plus, Image as ImageIcon, Trash2, X } from 'lucide-svelte';
+    import { Plus, Image as ImageIcon, Trash2, X, ExternalLink, Star, Sparkles, Loader2 } from 'lucide-svelte';
     import { invalidate } from '$app/navigation';
     import type { Importer } from '$lib/importers';
     import { findImporter } from '$lib/importers';
+    import { fly, fade, scale } from 'svelte/transition';
+    import { quintOut } from 'svelte/easing';
 
     type MediaItem = {
         id: number;
@@ -29,9 +31,9 @@
     let importer: Importer | null = null;
     let formData = { title: '', source_url: '', cover_url: '', description: '', rating: 0, comment: '' };
     let sourceUrl = '';
-    let isImport = false;
     let importError = '';
     let importState: 'idle' | 'loading' = 'idle';
+    let deleteConfirmId: number | null = null;
 
     function stripHtml(html: string | null | undefined) {
         if (!html) return '';
@@ -50,11 +52,7 @@
     $: category = data?.category ?? category;
     $: items = data?.items ?? items;
     $: error = data?.error ?? error;
-
-    // Keep formData.source_url in sync with input-bound sourceUrl
     $: formData = { ...formData, source_url: sourceUrl };
-
-    // Reactive: detect importer for the provided source URL
     $: importer = findImporter(sourceUrl);
 
     async function fetchItems() {
@@ -62,6 +60,7 @@
     }
 
     async function submitItem() {
+        const isImport = !!importer && !!formData.source_url;
         const payload = { ...formData, category, is_import: isImport };
         try {
             let res;
@@ -82,11 +81,7 @@
             if (res.ok) {
                 showAddModal = false;
                 editingId = null;
-                formData = { title: '', source_url: '', cover_url: '', description: '', rating: 0, comment: '' };
-                sourceUrl = '';
-                importError = '';
-                importState = 'idle';
-                isImport = false;
+                resetForm();
                 fetchItems();
             } else {
                 const err = await res.json();
@@ -95,6 +90,13 @@
         } catch (e) {
             console.error(e);
         }
+    }
+
+    function resetForm() {
+        formData = { title: '', source_url: '', cover_url: '', description: '', rating: 0, comment: '' };
+        sourceUrl = '';
+        importError = '';
+        importState = 'idle';
     }
 
     async function fetchHtmlFromUrl(url: string) {
@@ -120,10 +122,8 @@
             importError = 'Ссылка не поддерживается для импорта.';
             return;
         }
-
         importError = '';
         importState = 'loading';
-
         try {
             const html = await fetchHtmlFromUrl(formData.source_url);
             const data = importer.parseHtml(html, formData.source_url);
@@ -134,9 +134,7 @@
                 cover_url: data.cover_url ? normalizeUrl(data.cover_url) ?? formData.cover_url : formData.cover_url,
                 source_url: data.source_url,
             };
-            // keep input field in sync
             sourceUrl = formData.source_url;
-            isImport = true;
         } catch (err) {
             importError = err instanceof Error ? err.message : String(err);
             console.error(err);
@@ -146,12 +144,17 @@
     }
 
     async function deleteItem(id: number) {
-        if (!confirm('Вы уверены, что хотите удалить этот элемент?')) return;
+        if (deleteConfirmId !== id) {
+            deleteConfirmId = id;
+            setTimeout(() => { if (deleteConfirmId === id) deleteConfirmId = null; }, 3000);
+            return;
+        }
         try {
             const res = await fetch(`http://localhost:8000/api/items/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                selectedItem = null; // Закрываем окно просмотра, если оно открыто
-                await fetchItems(); // Обновляем список
+                selectedItem = null;
+                deleteConfirmId = null;
+                await fetchItems();
             }
         } catch (e) {
             console.error("Ошибка при удалении", e);
@@ -160,10 +163,7 @@
 
     function openAddModal() {
         editingId = null;
-        formData = { title: '', source_url: '', cover_url: '', description: '', rating: 0, comment: '' };
-        sourceUrl = '';
-        isImport = false;
-        importError = '';
+        resetForm();
         showAddModal = true;
     }
 
@@ -178,182 +178,430 @@
             comment: item.comment || ''
         };
         sourceUrl = item.source_url || '';
-        isImport = !!item.source_url;
         importError = '';
         showAddModal = true;
         selectedItem = null;
     }
+
+    function renderStars(rating: number = 0) {
+        return Array.from({ length: 10 }, (_, i) => i < rating);
+    }
+
+    function closeDetail() {
+        selectedItem = null;
+    }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Escape') {
+            if (selectedItem) selectedItem = null;
+            if (showAddModal) showAddModal = false;
+        }
+    }
+
+    function handleCardClick(item: MediaItem) {
+        selectedItem = item;
+    }
+
+    function handleEditClick(e: Event, item: MediaItem) {
+        e.stopPropagation();
+        editItem(item);
+    }
+
+    function handleDeleteClick(e: Event, id: number) {
+        e.stopPropagation();
+        deleteItem(id);
+    }
 </script>
 
-<div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold capitalize text-white">{category.replace('-', ' ')}</h1>
-    <button on:click={openAddModal} class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-500 flex items-center gap-2 transition">
-        <Plus size={20} /> Добавить
+<svelte:window on:keydown={handleKeydown} />
+
+<!-- Header with add button -->
+<div class="flex justify-between items-end mb-8 animate-fade-in-up" style="animation-delay: 0.05s">
+    <div>
+        <p class="text-text-secondary text-sm mb-1">{items.length} {items.length === 1 ? 'элемент' : items.length < 5 ? 'элемента' : 'элементов'}</p>
+    </div>
+    <button 
+        on:click={openAddModal} 
+        class="group flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl hover:bg-accent-hover transition-all duration-200 shadow-lg shadow-accent-glow hover:shadow-xl hover:shadow-accent-glow active:scale-95"
+    >
+        <Plus size={18} class="transition-transform group-hover:rotate-90" />
+        <span class="font-medium">Добавить</span>
     </button>
 </div>
 
-<div class="flex flex-col gap-4">
-    {#each items as item}
-        <div
-            on:click={() => (selectedItem = item)}
-            class="flex items-stretch bg-gray-800 rounded-lg shadow border border-gray-700 hover:border-blue-500 hover:bg-gray-750 transition-all text-left overflow-hidden group cursor-pointer"
-        >
-            <div class="w-24 h-36 shrink-0 bg-gray-700 flex items-center justify-center border-r border-gray-700">
-                {#if item.cover_url}
-                    <img src={normalizeUrl(item.cover_url)} alt="Обложка" class="w-full h-full object-cover" />
-                {:else}
-                    <ImageIcon size={32} class="text-gray-500" />
-                {/if}
-            </div>
+{#if error}
+    <div class="mb-6 p-4 rounded-xl bg-danger-soft border border-danger/20 text-danger animate-fade-in" transition:fade>
+        <p class="text-sm">{error}</p>
+    </div>
+{/if}
 
-            <div class="flex-1 grid grid-cols-4 gap-4 p-4 items-center">
-                <div>
-                    <h3 class="font-bold text-lg text-white line-clamp-2">
-                        <button type="button" on:click|stopPropagation={() => (selectedItem = item)} class="text-left w-full hover:underline">
+<!-- Grid of cards -->
+{#if items.length > 0}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+        {#each items as item, index (item.id)}
+            <div 
+                class="group relative animate-fade-in-up"
+                style="animation-delay: {Math.min(index * 0.05, 0.3)}s"
+                in:fly={{ y: 20, duration: 400, delay: index * 50, easing: quintOut }}
+            >
+                <!-- Card is now a div, not a button -->
+                <div
+                    on:click={() => handleCardClick(item)}
+                    on:keydown={(e) => e.key === 'Enter' && handleCardClick(item)}
+                    role="button"
+                    tabindex="0"
+                    class="w-full text-left card-hover cursor-pointer"
+                >
+                    <!-- Poster container -->
+                    <div class="relative poster-aspect rounded-xl overflow-hidden bg-surface border border-border-subtle group-hover:border-border-hover transition-all">
+                        {#if item.cover_url}
+                            <img 
+                                src={normalizeUrl(item.cover_url)} 
+                                alt={item.title || 'Обложка'} 
+                                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                loading="lazy"
+                            />
+                            <div class="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent opacity-60"></div>
+                        {:else}
+                            <div class="w-full h-full flex items-center justify-center bg-surface">
+                                <ImageIcon size={40} class="text-text-muted/30" />
+                            </div>
+                        {/if}
+
+                        <!-- Rating badge -->
+                        {#if (item.rating ?? 0) > 0}
+                            <div class="absolute top-2 right-2 flex items-center gap-0.5 bg-void/80 backdrop-blur-sm px-2 py-1 rounded-lg border border-border-subtle">
+                                <Star size={12} class="text-warning fill-warning" />
+                                <span class="text-xs font-bold text-white">{item.rating}</span>
+                            </div>
+                        {/if}
+
+                        <!-- Imported badge -->
+                        {#if item.source_url}
+                            <div class="absolute top-2 left-2">
+                                <div class="bg-accent/80 backdrop-blur-sm p-1.5 rounded-lg" title="Импортировано">
+                                    <Sparkles size={12} class="text-white" />
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Hover actions -->
+                        <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                            <div class="flex gap-2">
+                                <button
+                                    on:click={(e) => handleEditClick(e, item)}
+                                    class="flex-1 py-1.5 text-xs font-medium bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg transition-colors border border-white/10"
+                                >
+                                    Редактировать
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Title below poster -->
+                    <div class="mt-2.5 px-0.5">
+                        <h3 class="font-semibold text-sm text-text-primary line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                             {item.title || 'Без названия'}
-                        </button>
-                    </h3>
-                    {#if item.source_url}
-                        <span class="text-xs text-blue-400 mt-1 inline-block">🔗 Импортировано</span>
-                    {/if}
-                </div>
-
-                <div class="text-sm text-gray-400 line-clamp-3">
-                    {item.description || 'Нет описания'}
-                </div>
-
-                <div class="flex justify-center">
-                    {#if (item.rating ?? 0) > 0}
-                        <span class="bg-yellow-900/50 border border-yellow-700 text-yellow-400 font-bold px-3 py-1 rounded-full">
-                            ★ {item.rating ?? 0}/10
-                        </span>
-                    {:else}
-                        <span class="text-gray-500 text-sm">Без оценки</span>
-                    {/if}
-                </div>
-
-                <div class="text-sm text-gray-400 italic line-clamp-3 relative pr-8">
-                    {item.comment || 'Нет комментария'}
-                    <button
-                        on:click|stopPropagation={() => deleteItem(item.id)}
-                        class="absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                        title="Удалить"
-                    >
-                        <Trash2 size={20} />
-                    </button>
-                </div>
-            </div>
-        </div>
-    {:else}
-        <div class="text-center text-gray-500 py-10 bg-gray-800 rounded-lg border border-gray-700 border-dashed">
-            В этой категории пока ничего нет.
-        </div>
-    {/each}
-</div>
-
-{#if selectedItem}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" role="button" tabindex="0" on:click={() => (selectedItem = null)} on:keydown={(e) => e.key === 'Enter' && (selectedItem = null)}>
-        <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl border border-gray-700 relative" role="dialog" aria-modal="true" tabindex="-1" on:click|stopPropagation on:keydown={() => {}}>
-            <button type="button" on:click={() => (selectedItem = null)} class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <X size={24} />
-            </button>
-
-            <div class="flex gap-6">
-                {#if selectedItem.cover_url}
-                    <img src={normalizeUrl(selectedItem.cover_url)} alt="Обложка" class="w-40 h-60 object-cover rounded-md shadow-md" />
-                {/if}
-                <div class="flex-1 space-y-4">
-                    <h2 class="text-3xl font-bold text-white">{selectedItem.title}</h2>
-                    <div class="flex items-center gap-3">
-                        <span class="bg-yellow-900/50 border border-yellow-700 text-yellow-400 px-3 py-1 rounded-full">★ {selectedItem.rating}/10</span>
-                        {#if selectedItem.source_url}
-                            <a href={selectedItem.source_url} target="_blank" class="text-blue-400 hover:underline">Перейти к источнику</a>
+                        </h3>
+                        {#if item.comment}
+                            <p class="text-xs text-text-muted mt-0.5 line-clamp-1">{item.comment}</p>
                         {/if}
                     </div>
-                    <div>
-                        <h4 class="text-gray-400 text-sm font-semibold mb-1">Описание:</h4>
-                        <p class="text-gray-200">{selectedItem.description || '—'}</p>
+                </div>
+
+                <!-- Quick delete button (outside the card div) -->
+                <button
+                    on:click={(e) => handleDeleteClick(e, item.id)}
+                    class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-surface-raised border border-border-subtle flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-danger-soft hover:border-danger/30 hover:text-danger z-10"
+                    title="Удалить"
+                >
+                    {#if deleteConfirmId === item.id}
+                        <Trash2 size={14} class="text-danger" />
+                    {:else}
+                        <X size={14} class="text-text-muted" />
+                    {/if}
+                </button>
+            </div>
+        {/each}
+    </div>
+{:else}
+    <div class="flex flex-col items-center justify-center py-24 animate-fade-in">
+        <div class="w-20 h-20 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center mb-4">
+            <ImageIcon size={32} class="text-text-muted/30" />
+        </div>
+        <h3 class="text-lg font-semibold text-text-primary mb-1">Пустая коллекция</h3>
+        <p class="text-text-secondary text-sm mb-6 text-center max-w-sm">Добавьте первый элемент, чтобы начать отслеживать свои медиа</p>
+        <button 
+            on:click={openAddModal}
+            class="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl hover:bg-accent-hover transition-all shadow-lg shadow-accent-glow"
+        >
+            <Plus size={18} />
+            <span class="font-medium">Добавить первый элемент</span>
+        </button>
+    </div>
+{/if}
+
+<!-- Detail Overlay -->
+{#if selectedItem}
+    <div 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="absolute inset-0 bg-void/90 backdrop-blur-xl"
+            on:click={closeDetail}
+            role="button"
+            tabindex="0"
+            on:keydown={(e) => e.key === 'Enter' && closeDetail()}
+        ></div>
+
+        <div 
+            class="relative w-full max-w-4xl glass-panel-strong rounded-2xl overflow-hidden shadow-2xl animate-scale-in"
+            transition:scale={{ duration: 300, easing: quintOut, start: 0.95 }}
+        >
+            <button 
+                on:click={closeDetail}
+                class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-void/50 backdrop-blur-md border border-border-subtle flex items-center justify-center text-text-secondary hover:text-white hover:bg-void/80 transition-all"
+            >
+                <X size={20} />
+            </button>
+
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-72 shrink-0 relative">
+                    {#if selectedItem.cover_url}
+                        <img 
+                            src={normalizeUrl(selectedItem.cover_url)} 
+                            alt={selectedItem.title || 'Обложка'}
+                            class="w-full h-64 md:h-full object-cover"
+                        />
+                        <div class="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent md:bg-gradient-to-r"></div>
+                    {:else}
+                        <div class="w-full h-64 md:h-full bg-surface flex items-center justify-center">
+                            <ImageIcon size={64} class="text-text-muted/20" />
+                        </div>
+                    {/if}
+                </div>
+
+                <div class="flex-1 p-6 md:p-8 flex flex-col">
+                    <div class="flex-1">
+                        <h2 class="text-2xl md:text-3xl font-bold text-text-primary mb-3 leading-tight">
+                            {selectedItem.title || 'Без названия'}
+                        </h2>
+
+                        <div class="flex flex-wrap items-center gap-3 mb-6">
+                            {#if (selectedItem.rating ?? 0) > 0}
+                                <div class="flex items-center gap-1.5 bg-warning-soft border border-warning/20 px-3 py-1.5 rounded-lg">
+                                    <Star size={14} class="text-warning fill-warning" />
+                                    <span class="text-sm font-bold text-warning">{selectedItem.rating}/10</span>
+                                </div>
+                            {/if}
+                            {#if selectedItem.source_url}
+                                <a 
+                                    href={selectedItem.source_url} 
+                                    target="_blank" 
+                                    rel="noopener"
+                                    class="flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors bg-accent-glow px-3 py-1.5 rounded-lg border border-accent/10"
+                                >
+                                    <ExternalLink size={12} />
+                                    Источник
+                                </a>
+                            {/if}
+                        </div>
+
+                        {#if selectedItem.description}
+                            <div class="mb-6">
+                                <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Описание</h4>
+                                <p class="text-text-secondary text-sm leading-relaxed">{selectedItem.description}</p>
+                            </div>
+                        {/if}
+
+                        {#if selectedItem.comment}
+                            <div class="mb-6">
+                                <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Мои заметки</h4>
+                                <div class="bg-surface/50 border border-border-subtle rounded-xl p-4">
+                                    <p class="text-text-primary text-sm italic leading-relaxed">{selectedItem.comment}</p>
+                                </div>
+                            </div>
+                        {/if}
                     </div>
-                    <div>
-                        <h4 class="text-gray-400 text-sm font-semibold mb-1">Мой комментарий:</h4>
-                        <p class="text-gray-200 italic">{selectedItem.comment || '—'}</p>
+
+                    <div class="flex gap-3 pt-6 border-t border-border-subtle mt-auto">
+                        <button 
+                            on:click={() => selectedItem && editItem(selectedItem)}
+                            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-raised border border-border-subtle text-text-primary rounded-xl hover:bg-surface-hover hover:border-border-hover transition-all font-medium text-sm"
+                        >
+                            Редактировать
+                        </button>
+                        <button 
+                            on:click={() => selectedItem && deleteItem(selectedItem.id)}
+                            class="flex items-center justify-center gap-2 px-4 py-2.5 bg-danger-soft border border-danger/20 text-danger rounded-xl hover:bg-danger hover:text-white transition-all font-medium text-sm"
+                        >
+                            <Trash2 size={16} />
+                            {deleteConfirmId === selectedItem.id ? 'Подтвердить' : 'Удалить'}
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-gray-700 flex justify-end gap-3">
-                <button type="button" on:click={() => selectedItem && editItem(selectedItem)} class="px-4 py-2 bg-yellow-700 text-white rounded-md hover:bg-yellow-600">Редактировать</button>
-                <button type="button" on:click={() => selectedItem && deleteItem(selectedItem.id)} class="flex items-center gap-2 px-4 py-2 bg-red-900/50 text-red-400 hover:bg-red-600 hover:text-white rounded-md transition border border-red-800">
-                    <Trash2 size={18} /> Удалить элемент
-                </button>
             </div>
         </div>
     </div>
 {/if}
 
+<!-- Add/Edit Modal -->
 {#if showAddModal}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-700 max-h-[90vh] overflow-y-auto">
-            <h2 class="text-2xl font-bold mb-4 text-white">Добавить элемент</h2>
+    <div 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="absolute inset-0 bg-void/80 backdrop-blur-xl"
+            on:click={() => showAddModal = false}
+            role="button"
+            tabindex="0"
+            on:keydown={(e) => e.key === 'Enter' && (showAddModal = false)}
+        ></div>
 
-            <div class="mb-4 flex items-center gap-2 bg-gray-700 p-3 rounded-md">
-                <input type="checkbox" id="isImport" bind:checked={isImport} class="w-4 h-4 accent-blue-500" />
-                <label for="isImport" class="text-gray-200 cursor-pointer">Импортировать по ссылке</label>
-            </div>
-
-            <form on:submit|preventDefault={submitItem} class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-300" for="url">Ссылка на источник</label>
-                    <input id="url" type="url" bind:value={sourceUrl} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" placeholder="https://..." />
+        <div 
+            class="relative w-full max-w-lg glass-panel-strong rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin animate-scale-in"
+            transition:scale={{ duration: 300, easing: quintOut, start: 0.95 }}
+        >
+            <div class="p-6 md:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-text-primary">
+                        {editingId ? 'Редактировать' : 'Добавить элемент'}
+                    </h2>
+                    <button 
+                        on:click={() => showAddModal = false}
+                        class="w-8 h-8 rounded-lg hover:bg-surface flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+                    >
+                        <X size={18} />
+                    </button>
                 </div>
-                {#if formData.source_url}
-                    <div class="flex flex-col gap-2">
-                        <button type="button" on:click={importFromSource} class="w-full inline-flex justify-center items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-500 transition disabled:opacity-50" disabled={!importer || importState === 'loading'}>
-                            {#if importState === 'loading'}Импорт...{:else}Импортировать{/if}
-                        </button>
+
+                <form on:submit|preventDefault={submitItem} class="space-y-5">
+                    <!-- Source URL with auto-import -->
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="url">Ссылка на источник</label>
+                        <div class="flex gap-2">
+                            <input 
+                                id="url" 
+                                type="url" 
+                                bind:value={sourceUrl} 
+                                class="flex-1 bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none"
+                                placeholder="https://shikimori.io/animes/..."
+                            />
+                            <button 
+                                type="button" 
+                                on:click={importFromSource}
+                                disabled={!importer || importState === 'loading'}
+                                class="px-4 py-2.5 bg-success-soft border border-success/20 text-success rounded-xl hover:bg-success hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium shrink-0"
+                            >
+                                {#if importState === 'loading'}
+                                    <Loader2 size={16} class="animate-spin" />
+                                {:else}
+                                    <Sparkles size={16} />
+                                {/if}
+                                Импорт
+                            </button>
+                        </div>
                         {#if importer}
-                            <p class="text-xs text-gray-400">Импорт настроен для {importer.name}.</p>
-                        {:else}
-                            <p class="text-xs text-red-400">Ссылка не поддерживается. Вставьте страницу Shikimori.</p>
+                            <p class="text-xs text-success flex items-center gap-1">
+                                <Sparkles size={12} />
+                                Поддерживается импорт из {importer.name}
+                            </p>
+                        {:else if sourceUrl}
+                            <p class="text-xs text-text-muted">Вставьте ссылку на Shikimori для автоматического импорта</p>
                         {/if}
                         {#if importError}
-                            <p class="text-sm text-red-300">{importError}</p>
+                            <p class="text-xs text-danger bg-danger-soft px-3 py-2 rounded-lg">{importError}</p>
                         {/if}
                     </div>
-                {/if}
 
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-300" for="title">Название {isImport ? '(можно изменить)' : '*'}</label>
-                    <input id="title" type="text" bind:value={formData.title} required={!isImport} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" placeholder="Введите название..." />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-300" for="cover">Ссылка на обложку</label>
-                    <input id="cover" type="url" bind:value={formData.cover_url} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-300" for="desc">Описание</label>
-                    <textarea id="desc" bind:value={formData.description} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" rows="3"></textarea>
-                </div>
-
-                <div class="flex gap-4">
-                    <div class="w-1/3">
-                        <label class="block text-sm font-medium mb-1 text-gray-300" for="rating">Оценка (0-10)</label>
-                        <input id="rating" type="number" min="0" max="10" bind:value={formData.rating} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" />
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="title">
+                            Название {#if !importer || !sourceUrl}<span class="text-danger">*</span>{/if}
+                        </label>
+                        <input 
+                            id="title" 
+                            type="text" 
+                            bind:value={formData.title} 
+                            required={!importer || !sourceUrl}
+                            class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none"
+                            placeholder="Название медиа..."
+                        />
                     </div>
-                </div>
 
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-300" for="comment">Личное впечатление</label>
-                    <textarea id="comment" bind:value={formData.comment} class="w-full bg-gray-900 border border-gray-600 text-white rounded-md p-2 focus:border-blue-500 outline-none" rows="2"></textarea>
-                </div>
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="cover">Ссылка на обложку</label>
+                        <input 
+                            id="cover" 
+                            type="url" 
+                            bind:value={formData.cover_url} 
+                            class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none"
+                            placeholder="https://..."
+                        />
+                    </div>
 
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-700">
-                    <button type="button" on:click={() => (showAddModal = false)} class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition">Отмена</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition">Сохранить</button>
-                </div>
-            </form>
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="desc">Описание</label>
+                        <textarea 
+                            id="desc" 
+                            bind:value={formData.description} 
+                            class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none resize-none"
+                            rows="3"
+                            placeholder="Краткое описание..."
+                        ></textarea>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="rating">
+                            Оценка <span class="text-text-secondary font-normal">{formData.rating}/10</span>
+                        </label>
+                        <div class="flex items-center gap-4">
+                            <input 
+                                id="rating" 
+                                type="range" 
+                                min="0" 
+                                max="10" 
+                                step="1"
+                                bind:value={formData.rating} 
+                                class="flex-1"
+                            />
+                            <div class="flex gap-0.5">
+                                {#each renderStars(formData.rating) as filled}
+                                    <Star size={16} class={filled ? 'text-warning fill-warning' : 'text-text-muted/30'} />
+                                {/each}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider" for="comment">Личное впечатление</label>
+                        <textarea 
+                            id="comment" 
+                            bind:value={formData.comment} 
+                            class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none resize-none"
+                            rows="2"
+                            placeholder="Ваши мысли об этом..."
+                        ></textarea>
+                    </div>
+
+                    <div class="flex gap-3 pt-4 border-t border-border-subtle">
+                        <button 
+                            type="button" 
+                            on:click={() => showAddModal = false}
+                            class="flex-1 px-4 py-2.5 bg-surface border border-border-subtle text-text-secondary rounded-xl hover:bg-surface-hover hover:text-text-primary transition-all text-sm font-medium"
+                        >
+                            Отмена
+                        </button>
+                        <button 
+                            type="submit"
+                            class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl hover:bg-accent-hover transition-all shadow-lg shadow-accent-glow text-sm font-medium active:scale-95"
+                        >
+                            {editingId ? 'Сохранить изменения' : 'Добавить'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 {/if}
