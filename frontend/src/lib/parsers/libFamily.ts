@@ -28,7 +28,7 @@ const LIB_SITES: LibSiteConfig[] = [
         name: 'RanobeLib',
         baseUrl: 'https://ranobelib.me',
         siteId: 3,
-        pathSegment: 'book',
+        pathSegment: 'manga',
     },
     {
         id: 'hentailib',
@@ -36,6 +36,13 @@ const LIB_SITES: LibSiteConfig[] = [
         baseUrl: 'https://hentailib.me',
         siteId: 4,
         pathSegment: 'manga',
+    },
+    {
+        id: 'animelib',
+        name: 'AnimeLib',
+        baseUrl: 'https://anilib.me',
+        siteId: 1,
+        pathSegment: 'anime',
     }
 ];
 
@@ -117,7 +124,7 @@ function summaryToHtml(summary: SummaryNode | null | undefined): string {
 }
 
 function extractSlugUrl(url: string): string | null {
-    const match = url.match(/\/ru\/(?:manga|book)\/([^/?#]+)/i);
+    const match = url.match(/\/ru\/(?:manga|book|anime)\/([^/?#]+)/i);
     return match?.[1] ?? null;
 }
 
@@ -142,7 +149,7 @@ async function parseLibGroup(url: string): Promise<ImportedMediaData> {
         throw new Error('Не удалось извлечь slug из ссылки.');
     }
 
-    const apiUrl = `${API_DOMAIN}/api/manga/${slugUrl}?fields[]=summary&fields[]=eng_name&fields[]=otherNames`;
+    const apiUrl = `${API_DOMAIN}/api/${siteConfig.pathSegment}/${slugUrl}?fields[]=summary&fields[]=eng_name&fields[]=otherNames`;
 
     let jsonText: string;
     try {
@@ -183,7 +190,7 @@ async function parseLibGroup(url: string): Promise<ImportedMediaData> {
 
 export const libFamilyImporter: Importer = {
     id: '...lib',
-    name: 'MangaLib / RanobeLib / HentaiLib',
-    urlPattern: /^https?:\/\/(mangalib\.org|mangalib\.me|hentailib\.me|ranobelib\.me)\/ru\/(manga|book)\/[^/?#]+/i,
+    name: 'MangaLib / RanobeLib / HentaiLib / Animelib',
+    urlPattern: /^https?:\/\/(mangalib\.org|mangalib\.me|hentailib\.me|ranobelib\.me|anilib\.me)\/ru\/(manga|book|anime)\/[^/?#]+/i,
     fetchAndParse: parseLibGroup,
 };
