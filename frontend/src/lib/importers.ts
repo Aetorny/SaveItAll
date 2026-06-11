@@ -85,7 +85,7 @@ export const importers: Importer[] = [
     {
         id: 'shikimori',
         name: 'Shikimori',
-        urlPattern: /^https?:\/\/shikimori\.io\/animes\/\d+[\w-]*/i,
+        urlPattern: /^https?:\/\/shikimori\.io\/animes\/[^\/]+/i,
         parseHtml: parseShikimori,
     },
 ];
