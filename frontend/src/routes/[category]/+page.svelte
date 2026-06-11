@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Plus } from 'lucide-svelte';
     import { invalidate } from '$app/navigation';
-    import { findImporter, type ImportedMediaData } from '$lib/importers'; // Добавлен импорт типа
+    import { findImporter, type ImportedMediaData } from '$lib/index'; // Добавлен импорт типа
     import MediaGrid from '$lib/components/MediaGrid.svelte';
     import DetailOverlay from '$lib/components/DetailOverlay.svelte';
     import ItemModal from '$lib/components/ItemModal.svelte';

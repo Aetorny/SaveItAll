@@ -3,7 +3,7 @@
     import { fade, scale } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import RatingSlider from './RatingSlider.svelte';
-    import type { Importer } from '$lib/importers';
+    import type { Importer } from '$lib/index';
 
     export let show: boolean = false;
     export let editingId: number | null = null;
