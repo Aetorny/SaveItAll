@@ -150,6 +150,8 @@ def delete_tag(tag: str, db: Session = Depends(get_db)):
 def clear_db(db: Session = Depends(get_db)):
     db.query(MediaItemDB).delete()
     db.commit()
+    tags.clear()
+    save_tags(tags)
     return {"message": "База данных очищена"}
 
 @router.get("/export-db")
@@ -191,6 +193,8 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
             comment=item.get("comment"),
             tags=item.get("tags", [])
         )
+        for tag in item.get('tags', []):
+            create_tag(tag)
         db.add(db_item)
     db.commit()
     return {"message": "Данные успешно импортированы"}
