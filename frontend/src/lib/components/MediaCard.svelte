@@ -73,8 +73,8 @@
 
 <div 
     class="group relative animate-fade-in-up"
-    style="animation-delay: {Math.min(index * 0.02, 0.2)}s"
-    in:fly={{ y: 24, duration: 250, delay: index * 25, easing: quintOut }}
+    style="animation-delay: 0.1s"
+    in:fly={{ y: 24, duration: 500, delay: index * 20, easing: quintOut }}
 >
     <div
         bind:this={cardRef}
