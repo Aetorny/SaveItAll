@@ -4,3 +4,4 @@ sqlalchemy
 pydantic
 pywebview
 pydantic_settings
+python-multipart

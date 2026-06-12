@@ -1,9 +1,10 @@
+import json
 import urllib.request
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
-from typing import List
+from typing import Any, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
@@ -143,3 +144,52 @@ def delete_tag(tag: str, db: Session = Depends(get_db)):
             item.tags.remove(tag)
     db.commit()
     return {"message": "Тег удален"}
+
+@router.post("/clear-db")
+def clear_db(db: Session = Depends(get_db)):
+    db.query(MediaItemDB).delete()
+    db.commit()
+    return {"message": "База данных очищена"}
+
+@router.get("/export-db")
+def export_db(db: Session = Depends(get_db)):
+    items = db.query(MediaItemDB).all()
+    export_data: list[dict[str, Any]] = []
+    for item in items:
+        export_data.append({
+            "title": item.title,
+            "category": item.category,
+            "source_url": item.source_url,
+            "cover_url": item.cover_url,
+            "description": item.description,
+            "rating": item.rating,
+            "comment": item.comment,
+            "tags": item.tags
+        })
+    
+    json_str = json.dumps(export_data, indent=4, ensure_ascii=False)
+    return Response(
+        content=json_str,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=saveitall_backup.json"}
+    )
+
+@router.post("/import-db")
+async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    content = await file.read()
+    import_data = json.loads(content)
+    
+    for item in import_data:
+        db_item = MediaItemDB(
+            title=item.get("title", ""),
+            category=item.get("category", ""),
+            source_url=item.get("source_url", ""),
+            cover_url=item.get("cover_url", ""),
+            description=item.get("description", ""),
+            rating=item.get("rating"),
+            comment=item.get("comment"),
+            tags=item.get("tags", [])
+        )
+        db.add(db_item)
+    db.commit()
+    return {"message": "Данные успешно импортированы"}

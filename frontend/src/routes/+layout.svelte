@@ -204,7 +204,7 @@
 
         <div class="relative z-10 p-6 md:p-8 max-w-7xl mx-auto min-h-screen">
             {#if pageTitle}
-                <div class="mb-8 animate-fade-in-up category-header" in:fly={{ y: -20, duration: 500, easing: quintOut }}>
+                <div class="mb-8 animate-fade-in-up category-header" in:fly={{ y: -20, duration: 0, easing: quintOut }}>
                     <div class="flex items-center gap-3 mb-2">
                         <h1 class="text-4xl font-bold tracking-tight text-gradient">{pageTitle}</h1>
                         <ChevronRight size={24} class="text-text-muted animate-bounce-subtle" />
