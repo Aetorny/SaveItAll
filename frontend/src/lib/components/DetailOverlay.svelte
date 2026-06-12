@@ -141,7 +141,7 @@
                     <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
                         <h2 
                             id="detail-title"
-                            class="text-2xl md:text-3xl font-bold text-text-primary mb-4 leading-tight"
+                            class="text-2xl md:text-3xl font-bold text-text-primary mb-4 leading-tight select-text"
                             in:fly={{ x: 20, duration: 400, delay: 100, easing: quintOut }}
                         >
                             {item.title || 'Без названия'}
@@ -169,7 +169,7 @@
                                     <span class="w-1 h-1 rounded-full bg-accent"></span>
                                     Описание
                                 </h4>
-                                <p class="text-text-secondary text-sm leading-relaxed">{item.description}</p>
+                                <p class="text-text-secondary text-sm leading-relaxed select-text">{item.description}</p>
                             </div>
                         {/if}
 
@@ -181,7 +181,7 @@
                                 </h4>
                                 <div class="bg-surface/50 border border-border-subtle rounded-xl p-4 relative">
                                     <div class="absolute -top-2 left-4 w-4 h-4 bg-surface/50 border-l border-t border-border-subtle rotate-45"></div>
-                                    <p class="text-text-primary text-sm italic leading-relaxed relative z-10 break-all">
+                                    <p class="text-text-primary text-sm italic leading-relaxed relative z-10 break-all select-text">
                                         {item.comment}
                                     </p>
                                 </div>
