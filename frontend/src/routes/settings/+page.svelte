@@ -35,7 +35,7 @@
         {
             id: 'about',
             title: 'О приложении',
-            subtitle: 'Media Tracker v0.0.1',
+            subtitle: 'Save It All v0.0.1',
             icon: Info,
             iconBg: 'accent-gradient',
             iconColor: 'text-white',
