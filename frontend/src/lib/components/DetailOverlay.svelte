@@ -261,23 +261,3 @@
         </div>
     </div>
 {/if}
-
-<style>
-    .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 5px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.12);
-        border-radius: 20px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(255, 255, 255, 0.28);
-    }
-</style>

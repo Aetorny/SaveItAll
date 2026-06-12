@@ -133,7 +133,7 @@
         </div>
 
         <nav
-            class="flex-1 overflow-y-auto py-3 px-2 space-y-1 scrollbar-thin relative"
+            class="flex-1 overflow-y-auto py-3 px-2 space-y-1 custom-scrollbar relative"
             use:dndzone={{ items, flipDurationMs, dropTargetStyle: {} }}
             onconsider={handleDndConsider}
             onfinalize={handleDndFinalize}
@@ -195,7 +195,7 @@
         </div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto scrollbar-thin relative" onscroll={handleScroll}>
+    <main class="flex-1 overflow-y-auto custom-scrollbar relative" onscroll={handleScroll}>
         <div class="animated-bg">
             <div class="bg-orb bg-orb-1"></div>
             <div class="bg-orb bg-orb-2"></div>
