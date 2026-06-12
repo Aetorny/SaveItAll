@@ -2,3 +2,5 @@ fastapi
 uvicorn
 sqlalchemy
 pydantic
+pywebview
+pydantic_settings
