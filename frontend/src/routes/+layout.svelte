@@ -36,6 +36,7 @@
     let hoveredItem = $state<number | null>(null);
     let isDragging = $state(false);
     let scrollProgress = $state(0);
+    const ico_path = 'http://127.0.0.1:8000/api/icon';
 
     const flipDurationMs = 250;
 
@@ -128,7 +129,7 @@
         <div class="h-16 flex items-center justify-center border-b border-border-subtle relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-b from-accent/5 to-transparent"></div>
             <div class="relative w-10 h-10 rounded-xl accent-gradient flex items-center justify-center shadow-lg shadow-accent-glow animate-pulse-glow">
-                <img src="/src/lib/assets/icon.ico" class="w-full h-full object-contain scale-200" alt="icon" />
+                <img src="{ico_path}" class="w-full h-full object-contain scale-125" alt="icon" />
             </div>
         </div>
 

@@ -3,9 +3,10 @@ import urllib.request
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
 from typing import Any, List
+from settings import IS_EXE, get_resource_path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from database import get_db, load_tags, save_tags
@@ -193,3 +194,16 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
         db.add(db_item)
     db.commit()
     return {"message": "Данные успешно импортированы"}
+
+@router.get("/icon")
+async def get_icon():
+    if IS_EXE:
+        return FileResponse(
+            get_resource_path("src/lib/assets/icon.ico"),
+            media_type="image/x-icon"
+        )
+    else:
+        return FileResponse(
+            "../frontend/src/lib/assets/icon.ico",
+            media_type="image/x-icon"
+        )
