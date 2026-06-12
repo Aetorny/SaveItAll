@@ -1,9 +1,12 @@
 import subprocess
 import sys
+import os
+
 import urllib.request
 from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, RedirectResponse
+from settings import settings
 
 router = APIRouter(tags=["Frontend"])
 
@@ -19,7 +22,7 @@ def find_frontend_build() -> Path | None:
 
 def is_dev_server_up() -> bool:
     try:
-        req = urllib.request.Request('http://127.0.0.1:5173', headers={"User-Agent": "Mozilla/5.0"})
+        req = urllib.request.Request(f'http://127.0.0.1:{settings.FRONTEND_PORT}', headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=1) as resp:
             return resp.status < 400
     except Exception:
@@ -34,13 +37,28 @@ def stop_frontend() -> None:
     global frontend_process
     if frontend_process is None:
         return
+        
     if frontend_process.poll() is None:
-        print("Остановка фронтенда...")
-        frontend_process.terminate()
-        try:
-            frontend_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            frontend_process.kill()
+        print("Остановка процессов фронтенда...")
+        
+        if os.name == 'nt':
+            # Для Windows: принудительно (/F) убиваем процесс и все его дочерние процессы (/T)
+            try:
+                subprocess.call(
+                    ['taskkill', '/F', '/T', '/PID', str(frontend_process.pid)],
+                    stdout=subprocess.DEVNULL, 
+                    stderr=subprocess.DEVNULL
+                )
+            except Exception as e:
+                print(f"Ошибка при остановке фронтенда: {e}")
+        else:
+            # Для Linux/macOS оставляем вашу логику
+            frontend_process.terminate()
+            try:
+                frontend_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                frontend_process.kill()
+
 
 @router.get("/__frontend_ready")
 def frontend_ready():
@@ -59,7 +77,7 @@ def serve_frontend_index():
             return FileResponse(index, media_type='text/html')
             
     if is_dev_server_up():
-        return RedirectResponse('http://127.0.0.1:5173')
+        return RedirectResponse(f'http://127.0.0.1:{settings.FRONTEND_PORT}')
         
     html = """
         <!doctype html>
@@ -90,13 +108,6 @@ def serve_frontend_index():
                 <div class="box">
                     <div class="spinner" aria-hidden></div>
                     <h1>Загрузка фронтенда…</h1>
-                    <p>Страницу можно открыть через порт <strong>5173</strong> при запущенном dev‑сервере.</p>
-                    <div class="dots" aria-hidden>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <small>Авто‑обновление выполняется каждые 1.5 секунды.</small>
                 </div>
                 <script>
                     async function check(){
@@ -104,7 +115,7 @@ def serve_frontend_index():
                             const r = await fetch('/__frontend_ready');
                             if(r.ok){ location.reload(); return; }
                         }catch(e){}
-                        setTimeout(check,1500);
+                        setTimeout(check,1000);
                     }
                     check();
                 </script>
