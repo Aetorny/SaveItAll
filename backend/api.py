@@ -1,6 +1,6 @@
 import json
 import urllib.request
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote, urlunparse
 from urllib.error import HTTPError, URLError
 from typing import Any, List
 from settings import IS_EXE, get_resource_path
@@ -86,8 +86,18 @@ def fetch_url(url: str):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=400, detail="Неверная схема URL")
+    safe_path = quote(parsed.path)
+    safe_query = quote(parsed.query) if parsed.query else ""
+    safe_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        safe_path,
+        parsed.params,
+        safe_query,
+        parsed.fragment
+    ))
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/html"})
+        req = urllib.request.Request(safe_url, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/html"})
         with urllib.request.urlopen(req, timeout=20) as response:
             content = response.read()
             return content.decode("utf-8", errors="replace")
