@@ -42,7 +42,7 @@ app.include_router(frontend_router)
 config = uvicorn.Config(
     app,
     host="127.0.0.1",
-    port=settings.BACKEND_PORT,
+    port=8000,
 )
 
 server = uvicorn.Server(config)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         api_thread.start()
         webview.create_window( # type: ignore
             "Save It All",
-            f"http://127.0.0.1:{settings.FRONTEND_PORT if settings.IS_RUN_DEV and not IS_EXE else settings.BACKEND_PORT}",
+            f"http://127.0.0.1:{5173 if settings.IS_RUN_DEV and not IS_EXE else 8000}",
             maximized=True,
             focus=True,
         )

@@ -6,7 +6,7 @@ import urllib.request
 from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, RedirectResponse
-from settings import settings, IS_EXE, get_resource_path
+from settings import IS_EXE, get_resource_path
 
 router = APIRouter(tags=["Frontend"])
 
@@ -22,7 +22,7 @@ def find_frontend_build() -> Path | None:
 
 def is_dev_server_up() -> bool:
     try:
-        req = urllib.request.Request(f'http://127.0.0.1:{settings.FRONTEND_PORT}', headers={"User-Agent": "Mozilla/5.0"})
+        req = urllib.request.Request(f'http://127.0.0.1:5137', headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=1) as resp:
             return resp.status < 400
     except Exception:
@@ -82,7 +82,7 @@ def serve_frontend_index():
             return FileResponse(index, media_type='text/html')
 
     if is_dev_server_up():
-        return RedirectResponse(f'http://127.0.0.1:{settings.FRONTEND_PORT}')
+        return RedirectResponse(f'http://127.0.0.1:5137')
         
     html = """
         <!doctype html>
