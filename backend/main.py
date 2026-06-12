@@ -1,15 +1,18 @@
+
 import os
+import pathlib
 import sys
 import atexit
 import threading
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, Base
+from settings import settings, IS_EXE, get_resource_path
 from api import router as api_router
-from settings import settings
 from frontend_link import (
     router as frontend_router, 
     start_frontend, 
@@ -22,7 +25,7 @@ import uvicorn
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Media Tracker API")
+app = FastAPI(title="Save It All API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,14 +54,21 @@ if __name__ == "__main__":
     atexit.register(stop_frontend)
 
     build_dir = find_frontend_build()
-    if settings.IS_RUN_DEV or not build_dir:
-        try:
-            frontend.frontend_process = start_frontend() # pyright: ignore[reportAttributeAccessIssue]
-        except FileNotFoundError:
-            print("npm не найден. Установите Node.js и npm, чтобы запустить фронтенд.", file=sys.stderr)
+    if IS_EXE:
+        build_dir_for_exe = get_resource_path("dist")
+        app.mount('/', StaticFiles(directory=str(build_dir_for_exe), html=True), name='frontend_static')
+        @app.exception_handler(404)
+        async def not_found_handler(request, exc): # type: ignore
+            return FileResponse(os.path.join(build_dir_for_exe, "index.html"))
     else:
-        print(f"Найдена сборка фронтенда в {build_dir}, монтирую статические файлы.")
-        app.mount('/', StaticFiles(directory=str(build_dir), html=True), name='frontend_static')
+        if settings.IS_RUN_DEV or not build_dir:
+            try:
+                frontend.frontend_process = start_frontend() # pyright: ignore[reportAttributeAccessIssue]
+            except FileNotFoundError:
+                print("npm не найден. Установите Node.js и npm, чтобы запустить фронтенд.", file=sys.stderr)
+        else:
+            print(f"Найдена сборка фронтенда в {build_dir}, монтирую статические файлы.")
+            app.mount('/', StaticFiles(directory=str(build_dir), html=True), name='frontend_static')
 
     try:
         api_thread = threading.Thread(
@@ -67,12 +77,16 @@ if __name__ == "__main__":
         )
         api_thread.start()
         webview.create_window( # type: ignore
-            "Media Tracker",
-            f"http://127.0.0.1:{settings.FRONTEND_PORT if settings.IS_RUN_DEV else settings.BACKEND_PORT}",
+            "Save It All",
+            f"http://127.0.0.1:{settings.FRONTEND_PORT if settings.IS_RUN_DEV and not IS_EXE else settings.BACKEND_PORT}",
             maximized=True,
             focus=True,
         )
-        webview.start()
+        user_data_dir = os.path.join(pathlib.Path.home(), ".save_it_all_data")
+        webview.start(
+            private_mode=False,
+            storage_path=user_data_dir
+        )
     finally:
         server.should_exit = True
         stop_frontend()

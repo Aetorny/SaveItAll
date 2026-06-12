@@ -6,7 +6,7 @@ import urllib.request
 from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, RedirectResponse
-from settings import settings
+from settings import settings, IS_EXE, get_resource_path
 
 router = APIRouter(tags=["Frontend"])
 
@@ -62,7 +62,7 @@ def stop_frontend() -> None:
 
 @router.get("/__frontend_ready")
 def frontend_ready():
-    if find_frontend_build():
+    if find_frontend_build() or IS_EXE:
         return PlainTextResponse("ready", status_code=200)
     if is_dev_server_up():
         return PlainTextResponse("ready", status_code=200)
@@ -70,12 +70,17 @@ def frontend_ready():
 
 @router.get("/")
 def serve_frontend_index():
-    build_dir = find_frontend_build()
-    if build_dir:
-        index = build_dir / 'index.html'
-        if index.exists():
+    if not IS_EXE:
+        build_dir = find_frontend_build()
+        if build_dir:
+            index = build_dir / 'index.html'
+            if index.exists():
+                return FileResponse(index, media_type='text/html')
+    else:
+        index = os.path.join(get_resource_path("dist"), "index.html")
+        if os.path.exists(index):
             return FileResponse(index, media_type='text/html')
-            
+
     if is_dev_server_up():
         return RedirectResponse(f'http://127.0.0.1:{settings.FRONTEND_PORT}')
         
