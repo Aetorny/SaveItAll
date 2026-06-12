@@ -128,7 +128,7 @@
         <div class="h-16 flex items-center justify-center border-b border-border-subtle relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-b from-accent/5 to-transparent"></div>
             <div class="relative w-10 h-10 rounded-xl accent-gradient flex items-center justify-center shadow-lg shadow-accent-glow animate-pulse-glow">
-                <Sparkles size={20} class="text-white" />
+                <img src="/src/lib/assets/icon.ico" class="w-full h-full object-contain scale-200" alt="icon" />
             </div>
         </div>
 
