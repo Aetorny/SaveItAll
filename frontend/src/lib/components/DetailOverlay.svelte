@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { X, Star, ExternalLink, Trash2, Edit3, Calendar, Link2 } from 'lucide-svelte';
+    import { X, Star, ExternalLink, Trash2, Edit3, Link2, Plus } from 'lucide-svelte';
     import { fade, scale, fly } from 'svelte/transition';
     import { quintOut, backOut } from 'svelte/easing';
     import { createEventDispatcher } from 'svelte';
@@ -13,11 +13,13 @@
             description?: string;
             rating?: number;
             comment?: string;
+            tags?: string[];
         } | null;
         deleteConfirmId?: number | null;
+        allTags?: string[];
     }
 
-    let { item, deleteConfirmId = null }: Props = $props();
+    let { item, deleteConfirmId = null, allTags = [] }: Props = $props();
 
     type ItemType = NonNullable<typeof item>;
 
@@ -25,10 +27,14 @@
         close: void;
         edit: ItemType;
         delete: number;
+        addTag: { itemId: number; tag: string };
+        removeTag: { itemId: number; tag: string };
+        createTagAndAdd: { itemId: number; tag: string };
     }>();
 
     let imageLoaded = $state(false);
     let imageError = $state(false);
+    let newTagInput = $state('');
 
     function normalizeUrl(u: string | null | undefined) {
         if (!u) return u;
@@ -46,6 +52,21 @@
 
     function handleDelete() {
         if (item) dispatch('delete', item.id);
+    }
+
+    function handleRemoveTag(tag: string) {
+        if (item) dispatch('removeTag', { itemId: item.id, tag });
+    }
+
+    function handleAddExistingTag(tag: string) {
+        if (item && tag) dispatch('addTag', { itemId: item.id, tag });
+    }
+
+    function handleCreateAndAddTag() {
+        const trimmed = newTagInput.trim();
+        if (!trimmed || !item) return;
+        dispatch('createTagAndAdd', { itemId: item.id, tag: trimmed });
+        newTagInput = '';
     }
 
     function formatDate(dateStr: string | undefined) {
@@ -166,6 +187,60 @@
                                 </div>
                             </div>
                         {/if}
+
+                        {#if item.tags && item.tags.length > 0}
+                            <div class="mb-6">
+                                <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <span class="w-1 h-1 rounded-full bg-accent"></span>
+                                    Теги
+                                </h4>
+                                <div class="flex flex-wrap gap-2">
+                                    {#each item.tags as tag}
+                                        <span class="px-2.5 py-1 rounded-lg bg-surface border border-border-subtle text-xs text-text-secondary flex items-center gap-1.5 group/tag">
+                                            {tag}
+                                            <button 
+                                                onclick={() => handleRemoveTag(tag)} 
+                                                class="opacity-0 group-hover/tag:opacity-100 hover:text-danger transition-all"
+                                            >
+                                                <X size={10} />
+                                            </button>
+                                        </span>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <div class="flex flex-col gap-2 mb-6" in:fly={{ x: 20, duration: 400, delay: 290, easing: quintOut }}>
+                            <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-accent"></span>
+                                Управление тегами
+                            </h4>
+                            <div class="flex gap-2 flex-wrap">
+                                {#each allTags.filter(t => !item.tags?.includes(t)) as tag}
+                                    <button
+                                        onclick={() => handleAddExistingTag(tag)}
+                                        class="px-2.5 py-1 rounded-lg bg-surface/50 border border-border-subtle border-dashed text-xs text-text-muted hover:text-text-secondary hover:border-border-hover hover:bg-surface transition-all"
+                                    >
+                                        + {tag}
+                                    </button>
+                                {/each}
+                            </div>
+                            <div class="flex gap-2 mt-1">
+                                <input 
+                                    type="text" 
+                                    bind:value={newTagInput}
+                                    placeholder="Новый тег..."
+                                    class="flex-1 bg-surface border border-border-subtle text-text-primary rounded-xl px-3 py-2 text-xs placeholder:text-text-muted focus:border-accent focus:outline-none"
+                                    onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateAndAddTag())}
+                                />
+                                <button 
+                                    onclick={handleCreateAndAddTag}
+                                    class="px-3 py-2 bg-accent text-white rounded-xl hover:bg-accent-hover transition-all text-xs"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div 

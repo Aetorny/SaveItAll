@@ -7,11 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
-from database import get_db
+from database import get_db, load_tags, save_tags
 from models import MediaItemDB
 from schemas import MediaItem, MediaItemCreate, MediaItemBase
 
 router = APIRouter(prefix="/api", tags=["API"])
+tags = load_tags()
 
 def process_cover_url(cover: str | None) -> str:
     if not cover:
@@ -30,7 +31,6 @@ def create_item(item: MediaItemCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Необходимо указать название (title)")
 
     cover = process_cover_url(item.cover_url)
-
     db_item = MediaItemDB(
         category=item.category,
         title=item.title,
@@ -38,8 +38,10 @@ def create_item(item: MediaItemCreate, db: Session = Depends(get_db)):
         cover_url=cover,
         description=item.description,
         rating=item.rating,
-        comment=item.comment
+        comment=item.comment,
+        tags=item.tags
     )
+
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -68,6 +70,7 @@ def update_item(item_id: int, item: MediaItemBase, db: Session = Depends(get_db)
     db_item.description = item.description
     db_item.rating = item.rating
     db_item.comment = item.comment
+    db_item.tags = item.tags
 
     db.add(db_item)
     db.commit()
@@ -92,3 +95,51 @@ def fetch_url(url: str):
         raise HTTPException(status_code=502, detail=str(exc.reason))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки URL: {exc}")
+
+@router.get("/add-tag/{item_id}")
+def add_tag(item_id: int, tag: str, db: Session = Depends(get_db)):
+    db_item = db.query(MediaItemDB).filter(MediaItemDB.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Элемент не найден")
+
+    db_item.tags.append(tag) if db_item.tags is not None and tag not in db_item.tags else None
+    print(db_item.tags)
+
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.get("/remove-tag/{item_id}")
+def remove_tag(item_id: int, tag: str, db: Session = Depends(get_db)):
+    db_item = db.query(MediaItemDB).filter(MediaItemDB.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Элемент не найден")
+
+    if tag in db_item.tags:
+        db_item.tags.remove(tag)
+
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.get("/tags", response_model=List[str])
+def get_tags() -> List[str]:
+    return list(tags)
+
+@router.post("/create-tag")
+def create_tag(tag: str):
+    if tag not in tags:
+        tags.add(tag)
+        save_tags(tags)
+    return {"message": "Тег добавлен"}
+
+@router.post("/delete-tag")
+def delete_tag(tag: str, db: Session = Depends(get_db)):
+    if tag in tags:
+        tags.remove(tag)
+        save_tags(tags)
+    for item in db.query(MediaItemDB).all():
+        if item.tags and tag in item.tags:
+            item.tags.remove(tag)
+    db.commit()
+    return {"message": "Тег удален"}

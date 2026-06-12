@@ -1,4 +1,5 @@
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, JSON
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import mapped_column
 from database import Base
 
@@ -13,3 +14,4 @@ class MediaItemDB(Base):
     description = mapped_column(Text, nullable=True)
     rating = mapped_column(Integer, default=0)
     comment = mapped_column(Text, nullable=True)
+    tags = mapped_column(MutableList.as_mutable(JSON), nullable=True)

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { X, Sparkles, Loader2, Link2, AlertCircle, Check } from 'lucide-svelte';
+    import { X, Sparkles, Loader2, Link2, AlertCircle, Check, Plus, Tag } from 'lucide-svelte';
     import { fade, scale, fly } from 'svelte/transition';
     import { quintOut, backOut } from 'svelte/easing';
     import RatingSlider from './RatingSlider.svelte';
@@ -17,6 +17,8 @@
             rating: number;
             comment: string;
         };
+        itemTags?: string[];
+        allTags?: string[];
         sourceUrl: string;
         importer: Importer | null;
         importError: string;
@@ -27,6 +29,8 @@
         show, 
         editingId, 
         formData = $bindable(), 
+        itemTags = $bindable([]),
+        allTags = [],
         sourceUrl = $bindable(), 
         importer, 
         importError, 
@@ -38,12 +42,15 @@
         submit: void;
         import: void;
         sourceUrlChange: string;
+        createTag: string;
+        toggleTag: string;
     }>();
 
     let isNew = $derived(!editingId);
     let hasImporter = $derived(!!importer && !!sourceUrl);
     let titleRequired = $derived(!hasImporter);
     let modalRef = $state<HTMLDivElement | null>(null);
+    let newTagInput = $state('');
 
     function handleClose() {
         dispatch('close');
@@ -62,14 +69,24 @@
         dispatch('sourceUrlChange', target.value);
     }
 
-    // Focus trap and escape handling
+    function handleToggleTag(tag: string) {
+        dispatch('toggleTag', tag);
+    }
+
+    function createTagFromModal() {
+        const trimmed = newTagInput.trim();
+        if (!trimmed) return;
+        dispatch('createTag', trimmed);
+        dispatch('toggleTag', trimmed);
+        newTagInput = '';
+    }
+
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape') {
             handleClose();
         }
     }
 
-    // Auto-focus first input when opened
     $effect(() => {
         if (show) {
             setTimeout(() => {
@@ -97,7 +114,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
             bind:this={modalRef}
-            class="relative w-full max-w-lg glass-panel-strong rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
+            class="relative w-full max-w-lg glass-panel-strong rounded-2xl shadow-2xl max-h-full overflow-y-auto custom-scrollbar"
             transition:scale={{ duration: 200, easing: backOut, start: 1 }}
             onkeydown={handleKeydown}
         >
@@ -172,6 +189,40 @@
                                 <span>{importError}</span>
                             </div>
                         {/if}
+                    </div>
+
+                    <div class="space-y-3" in:fly={{ y: 10, duration: 150, delay: 75 }}>
+                        <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                            <Tag size={12} />
+                            Теги
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            {#each allTags as tag}
+                                <button
+                                    type="button"
+                                    onclick={() => handleToggleTag(tag)}
+                                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-100 border {itemTags.includes(tag) ? 'bg-accent text-white border-accent shadow-lg shadow-accent-glow' : 'bg-surface text-text-secondary border-border-subtle hover:bg-surface-hover'}"
+                                >
+                                    {tag}
+                                </button>
+                            {/each}
+                        </div>
+                        <div class="flex gap-2">
+                            <input 
+                                type="text" 
+                                bind:value={newTagInput}
+                                placeholder="Новый тег..."
+                                class="flex-1 bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none"
+                                onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), createTagFromModal())}
+                            />
+                            <button 
+                                type="button"
+                                onclick={createTagFromModal}
+                                class="px-4 py-2 bg-surface-raised border border-border-subtle text-text-primary rounded-xl hover:bg-surface-hover transition-all text-sm"
+                            >
+                                <Plus size={16} />
+                            </button>
+                        </div>
                     </div>
 
                     <div class="space-y-3" in:fly={{ y: 10, duration: 150, delay: 100 }}>
@@ -256,3 +307,23 @@
         </div>
     </div>
 {/if}
+
+<style>
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.28);
+    }
+</style>

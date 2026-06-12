@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Image as ImageIcon, Star, Sparkles, ExternalLink } from 'lucide-svelte';
+    import { Image as ImageIcon, Star, Sparkles } from 'lucide-svelte';
     import { fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import { createEventDispatcher } from 'svelte';
@@ -12,6 +12,7 @@
             cover_url?: string;
             rating?: number;
             comment?: string;
+            tags?: string[];
         };
         index?: number;
         deleteConfirmId?: number | null;
@@ -145,6 +146,18 @@
             </h3>
             {#if item.comment}
                 <p class="text-xs text-text-muted mt-1 line-clamp-1 transition-colors duration-150 group-hover:text-text-secondary">{item.comment}</p>
+            {/if}
+            {#if item.tags && item.tags.length > 0}
+                <div class="flex flex-wrap gap-1 mt-2 min-w-0">
+                    {#each item.tags as tag}
+                        <span
+                            class="px-1.5 py-0.5 rounded-md bg-surface-raised border border-border-subtle
+                                text-[10px] text-text-muted max-w-full truncate"
+                        >
+                            {tag}
+                        </span>
+                    {/each}
+                </div>
             {/if}
         </div>
     </div>

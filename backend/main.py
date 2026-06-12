@@ -15,7 +15,7 @@ from frontend_link import (
     stop_frontend, 
     find_frontend_build
 )
-import frontend_link as frontend # Для доступа к frontend.frontend_process
+import frontend_link as frontend
 
 Base.metadata.create_all(bind=engine)
 
@@ -39,7 +39,6 @@ if __name__ == "__main__":
     build_dir = find_frontend_build()
     if build_dir:
         print(f"Найдена сборка фронтенда в {build_dir}, монтирую статические файлы.")
-        # Монтируем статику (переопределит маршрут "/", если не найдено - отработает frontend_router)
         app.mount('/', StaticFiles(directory=str(build_dir), html=True), name='frontend_static')
 
     try:

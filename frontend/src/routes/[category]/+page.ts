@@ -3,24 +3,28 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async ({ fetch, params }) => {
     const category = params.category;
 
-    try {
-        const response = await fetch(`http://localhost:8000/api/items/${category}`);
+    let items = [];
+    let allTags: string[] = [];
+    let error = '';
 
-        if (!response.ok) {
-            return {
-                category,
-                items: [],
-                error: `Не удалось загрузить данные для категории «${category}»: ${response.status}`
-            };
+    try {
+        const [itemsRes, tagsRes] = await Promise.all([
+            fetch(`http://localhost:8000/api/items/${category}`),
+            fetch('http://localhost:8000/api/tags').catch(() => null)
+        ]);
+
+        if (!itemsRes.ok) {
+            error = `Не удалось загрузить данные для категории «${category}»: ${itemsRes.status}`;
+        } else {
+            items = await itemsRes.json();
         }
 
-        const items = await response.json();
-        return { category, items };
+        if (tagsRes && tagsRes.ok) {
+            allTags = await tagsRes.json();
+        }
     } catch (err) {
-        return {
-            category,
-            items: [],
-            error: `Ошибка подключения к серверу. Убедитесь, что бэкенд запущен.`
-        };
+        error = `Ошибка подключения к серверу. Убедитесь, что бэкенд запущен.`;
     }
+
+    return { category, items, allTags, error };
 };

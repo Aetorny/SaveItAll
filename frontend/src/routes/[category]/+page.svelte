@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Plus, Search, Filter, X, AlertTriangle } from 'lucide-svelte';
+    import { Plus, Search, Filter, X, AlertTriangle, Tag } from 'lucide-svelte';
     import { invalidate } from '$app/navigation';
     import { findImporter, type ImportedMediaData } from '$lib/index';
     import MediaGrid from '$lib/components/MediaGrid.svelte';
@@ -18,12 +18,14 @@
         rating?: number;
         comment?: string;
         created_at?: string;
+        tags?: string[];
     };
 
     interface Props {
         data: {
             category: string;
             items: MediaItem[];
+            allTags: string[];
             error?: string;
         };
     }
@@ -39,6 +41,12 @@
     let showFilters = $state(false);
     let minRating = $state(0);
     let sortBy = $state<'relevancy' | 'rating' | 'name'>('relevancy');
+
+    let selectedTags = $state<string[]>([]);
+    let showTagPicker = $state(false);
+    let exactMatch = $state(false);
+    let newTagName = $state('');
+    let tagToDelete = $state<string | null>(null);
 
     let toasts = $state<
         Array<{
@@ -60,12 +68,14 @@
         comment: ''
     });
 
+    let itemTags = $state<string[]>([]);
     let sourceUrl = $state('');
     let importError = $state('');
     let importState = $state<'idle' | 'loading'>('idle');
 
     let category = $derived(data.category);
     let items = $derived(data.items ?? []);
+    let allTags = $derived(data.allTags ?? []);
     let error = $derived(data.error ?? '');
 
     let importer = $derived(findImporter(sourceUrl));
@@ -83,6 +93,17 @@
 
         if (minRating > 0) {
             result = result.filter(item => (item.rating ?? 0) >= minRating);
+        }
+
+        if (selectedTags.length > 0) {
+            result = result.filter(item => {
+                const tags = item.tags ?? [];
+                if (exactMatch) {
+                    return selectedTags.every(tag => tags.includes(tag));
+                } else {
+                    return selectedTags.some(tag => tags.includes(tag));
+                }
+            });
         }
 
         if (sortBy === 'rating') {
@@ -116,9 +137,86 @@
         await invalidate(() => true);
     }
 
+    async function createGlobalTag(tag: string) {
+        const trimmed = tag.trim();
+        if (!trimmed) return false;
+        try {
+            const res = await fetch(`http://localhost:8000/api/create-tag?tag=${encodeURIComponent(trimmed)}`, { method: 'POST' });
+            if (res.ok) {
+                await fetchItems();
+                addToast('Тег создан', 'success');
+                return true;
+            } else {
+                addToast('Не удалось создать тег', 'error');
+            }
+        } catch (e) {
+            addToast('Ошибка сети', 'error');
+        }
+        return false;
+    }
+
+    async function deleteGlobalTag(tag: string | null) {
+        if (!tag) return;
+        try {
+            const res = await fetch(`http://localhost:8000/api/delete-tag?tag=${encodeURIComponent(tag)}`, { method: 'POST' });
+            if (res.ok) {
+                selectedTags = selectedTags.filter(t => t !== tag);
+                await fetchItems();
+                addToast('Тег удалён', 'success');
+            } else {
+                addToast('Не удалось удалить тег', 'error');
+            }
+        } catch (e) {
+            addToast('Ошибка сети', 'error');
+        }
+    }
+
+    async function addTagToItem(itemId: number, tag: string) {
+        try {
+            const res = await fetch(`http://localhost:8000/api/add-tag/${itemId}?tag=${encodeURIComponent(tag)}`);
+            if (res.ok) {
+                const updatedItem = await res.json();
+                if (selectedItem?.id === itemId) {
+                    selectedItem = { 
+                        ...selectedItem, 
+                        tags: updatedItem.tags
+                    };
+                }
+                await fetchItems();
+                addToast('Тег добавлен', 'success');
+            } else {
+                addToast('Не удалось добавить тег', 'error');
+            }
+        } catch (e) {
+            console.log('Ошибка при добавлении тега', e);
+            addToast('Ошибка сети', 'error');
+        }
+    }
+
+    async function removeTagFromItem(itemId: number, tag: string) {
+        try {
+            const res = await fetch(`http://localhost:8000/api/remove-tag/${itemId}?tag=${encodeURIComponent(tag)}`);
+            if (res.ok) {
+                const updatedItem = await res.json();
+                if (selectedItem?.id === itemId) {
+                    selectedItem = { 
+                        ...selectedItem, 
+                        tags: updatedItem.tags
+                    };
+                }
+                await fetchItems();
+                addToast('Тег удалён с элемента', 'success');
+            } else {
+                addToast('Не удалось удалить тег', 'error');
+            }
+        } catch (e) {
+            addToast('Ошибка сети', 'error');
+        }
+    }
+
     async function submitItem() {
         const isImport = !!importer && !!formData.source_url;
-        const payload = { ...formData, category, is_import: isImport };
+        const payload = { ...formData, category, is_import: isImport, tags: itemTags };
         try {
             const url = editingId 
                 ? `http://localhost:8000/api/items/${editingId}`
@@ -237,6 +335,7 @@
         sourceUrl = '';
         importError = '';
         importState = 'idle';
+        itemTags = [];
     }
 
     function openAddModal() {
@@ -256,6 +355,7 @@
             comment: item.comment || ''
         };
         sourceUrl = item.source_url || '';
+        itemTags = [...(item.tags ?? [])];
         importError = '';
         showModal = true;
         selectedItem = null;
@@ -275,6 +375,23 @@
         minRating = 0;
         sortBy = 'relevancy';
         showFilters = false;
+    }
+
+    function clearTags() {
+        selectedTags = [];
+    }
+
+    function toggleTag(tag: string) {
+        if (selectedTags.includes(tag)) {
+            selectedTags = selectedTags.filter(t => t !== tag);
+        } else {
+            selectedTags = [...selectedTags, tag];
+        }
+    }
+
+    async function createGlobalTagFromFilter() {
+        await createGlobalTag(newTagName);
+        newTagName = '';
     }
 
     function handleKeydown(e: KeyboardEvent) {
@@ -314,6 +431,20 @@
         </div>
         <div class="flex items-center gap-3">
             <button 
+                onclick={() => showTagPicker = !showTagPicker}
+                class="flex items-center gap-2 px-4 py-2.5 bg-surface border border-border-subtle text-text-secondary rounded-xl hover:bg-surface-hover hover:border-border-hover transition-all duration-100 text-sm font-medium relative"
+                class:border-accent={showTagPicker}
+                class:text-accent={showTagPicker}
+            >
+                <Tag size={16} />
+                <span>Теги</span>
+                {#if selectedTags.length > 0}
+                    <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
+                        {selectedTags.length}
+                    </span>
+                {/if}
+            </button>
+            <button 
                 onclick={() => showFilters = !showFilters}
                 class="flex items-center gap-2 px-4 py-2.5 bg-surface border border-border-subtle text-text-secondary rounded-xl hover:bg-surface-hover hover:border-border-hover transition-all duration-100 text-sm font-medium"
                 class:border-accent={showFilters}
@@ -350,6 +481,66 @@
             </button>
         {/if}
     </div>
+
+    {#if showTagPicker}
+        <div 
+            class="glass-panel rounded-xl p-4 space-y-3"
+            transition:slide={{ duration: 150, easing: quintOut }}
+        >
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">Фильтр по тегам</span>
+                <label class="flex items-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+                    <input type="checkbox" bind:checked={exactMatch} class="accent-accent rounded" />
+                    Точное совпадение
+                </label>
+            </div>
+
+            {#if allTags.length > 0}
+                <div class="flex flex-wrap gap-2">
+                    {#each allTags as tag}
+                        <div class="group relative">
+                            <button
+                                onclick={() => toggleTag(tag)}
+                                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-100 border {selectedTags.includes(tag) ? 'bg-accent text-white border-accent shadow-lg shadow-accent-glow' : 'bg-surface text-text-secondary border-border-subtle hover:bg-surface-hover'}"
+                            >
+                                {tag}
+                            </button>
+                            <button
+                                onclick={() => tagToDelete = tag}
+                                class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-danger text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                                title="Удалить тег полностью"
+                            >
+                                <X size={8} strokeWidth={3} />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            {:else}
+                <p class="text-xs text-text-muted">Нет доступных тегов</p>
+            {/if}
+
+            <div class="flex gap-2 pt-2 border-t border-border-subtle">
+                <input 
+                    type="text" 
+                    bind:value={newTagName}
+                    placeholder="Новый тег..."
+                    class="flex-1 bg-surface border border-border-subtle text-text-primary rounded-xl px-3 py-2 text-xs placeholder:text-text-muted focus:border-accent focus:outline-none"
+                />
+                <button 
+                    onclick={createGlobalTagFromFilter}
+                    class="px-3 py-2 bg-success-soft border border-success/20 text-success rounded-xl hover:bg-success hover:text-white transition-all text-xs font-medium"
+                >
+                    Создать
+                </button>
+            </div>
+
+            {#if selectedTags.length > 0}
+                <button onclick={clearTags} class="text-xs text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1">
+                    <X size={12} /> Сбросить теги
+                </button>
+            {/if}
+        </div>
+    {/if}
 
     {#if showFilters}
         <div 
@@ -424,9 +615,13 @@
     <DetailOverlay
         item={selectedItem}
         {deleteConfirmId}
+        {allTags}
         on:close={() => selectedItem = null}
         on:edit={(e) => openEditModal(e.detail)}
         on:delete={(e) => deleteItem(e.detail)}
+        on:addTag={(e) => addTagToItem(e.detail.itemId, e.detail.tag)}
+        on:removeTag={(e) => removeTagFromItem(e.detail.itemId, e.detail.tag)}
+        on:createTagAndAdd={async (e) => { await createGlobalTag(e.detail.tag); await addTagToItem(e.detail.itemId, e.detail.tag); }}
     />
 {/if}
 
@@ -434,6 +629,8 @@
     show={showModal}
     {editingId}
     {formData}
+    {itemTags}
+    {allTags}
     {sourceUrl}
     {importer}
     {importError}
@@ -442,4 +639,41 @@
     on:submit={submitItem}
     on:import={importFromSource}
     on:sourceUrlChange={(e) => sourceUrl = e.detail}
+    on:createTag={(e) => createGlobalTag(e.detail)}
+    on:toggleTag={(e) => {
+        const tag = e.detail;
+        if (itemTags.includes(tag)) {
+            itemTags = itemTags.filter(t => t !== tag);
+        } else {
+            itemTags = [...itemTags, tag];
+        }
+    }}
 />
+
+{#if tagToDelete}
+    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4" transition:fade={{ duration: 200 }}>
+        <div class="absolute inset-0 modal-overlay" onclick={() => tagToDelete = null}></div>
+        <div 
+            class="relative w-full max-w-sm glass-panel-strong rounded-2xl p-6 shadow-2xl"
+        >
+            <h3 class="text-lg font-bold text-text-primary mb-2">Удалить тег?</h3>
+            <p class="text-text-secondary text-sm mb-6">
+                Тег «<span class="font-semibold text-text-primary">{tagToDelete}</span>» будет удалён из глобального списка и со всех элементов. Это действие нельзя отменить.
+            </p>
+            <div class="flex gap-3">
+                <button 
+                    onclick={() => tagToDelete = null}
+                    class="flex-1 px-4 py-2.5 bg-surface border border-border-subtle text-text-secondary rounded-xl hover:bg-surface-hover transition-all duration-200 text-sm font-medium"
+                >
+                    Отмена
+                </button>
+                <button 
+                    onclick={() => { deleteGlobalTag(tagToDelete); tagToDelete = null; }}
+                    class="flex-1 px-4 py-2.5 bg-danger text-white rounded-xl hover:bg-danger/80 transition-all duration-200 text-sm font-medium"
+                >
+                    Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}

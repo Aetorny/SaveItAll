@@ -9,6 +9,7 @@ class MediaItemBase(BaseModel):
     description: Optional[str] = None
     rating: Optional[int] = 0
     comment: Optional[str] = None
+    tags: Optional[str] | list[str] = None
 
 class MediaItemCreate(MediaItemBase):
     is_import: bool

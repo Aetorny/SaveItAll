@@ -3,6 +3,7 @@ export type ImportedMediaData = {
     description?: string;
     cover_url?: string;
     source_url: string;
+    tags?: string[];
 };
 
 export type Importer = {
