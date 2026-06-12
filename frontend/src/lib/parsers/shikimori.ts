@@ -16,7 +16,8 @@ function parseShikimori(html: string, url: string): ImportedMediaData {
         || normalizeText(doc.querySelector('h2')?.textContent)
         || normalizeText(doc.title);
 
-    const description = getDescriptionHtmlFromNode(doc.querySelector('.c-description [itemprop="description"]'))
+    const descriptionNode = doc.querySelector('.c-description .b-text_with_paragraphs');
+    const description = descriptionNode ? normalizeText(descriptionNode.textContent) : getDescriptionHtmlFromNode(doc.querySelector('.c-description [itemprop="description"]'))
         || getDescriptionHtmlFromNode(doc.querySelector('.c-description .b-text_with_paragraphs'))
         || getDescriptionHtmlFromNode(doc.querySelector('.c-description .text'))
         || getMetaContent(doc, 'meta[property="og:description"]')
@@ -24,10 +25,13 @@ function parseShikimori(html: string, url: string): ImportedMediaData {
         || getDescriptionTextFromNode(doc.querySelector('[itemprop="description"]'))
         || getDescriptionTextFromNode(doc.querySelector('.description'))
         || getDescriptionTextFromNode(doc.querySelector('.anime-description'))
+        || getDescriptionTextFromNode(doc.querySelector('.manga-description'))
         || getDescriptionTextFromNode(doc.querySelector('.storyline'))
         || getDescriptionTextFromNode(doc.querySelector('.story'));
 
     const cover_url = doc.querySelector('img[src*="/uploads/poster/animes/"]')?.getAttribute('src')
+        || doc.querySelector('img[src*="/uploads/poster/mangas/"]')?.getAttribute('src')
+        || doc.querySelector('img[src*="/uploads/poster/ranobes/"]')?.getAttribute('src')
         || doc.querySelector('img[src*="/uploads/poster/"]')?.getAttribute('src')
         || getMetaContent(doc, 'meta[property="og:image"]')
         || undefined;
@@ -55,6 +59,6 @@ function parseShikimori(html: string, url: string): ImportedMediaData {
 export const shikimoriImporter: Importer = {
     id: 'shikimori',
     name: 'Shikimori',
-    urlPattern: /^https?:\/\/shikimori\.io\/animes\/[^\/]+/i,
+    urlPattern: /^https?:\/\/shikimori\.io\/(animes|mangas|ranobes)\/[^\/]+/i,
     parseHtml: parseShikimori,
 };
