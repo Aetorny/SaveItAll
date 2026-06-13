@@ -221,7 +221,6 @@
                         <img 
                             src={normalizeUrl(item.cover_url)} 
                             alt={item.title || 'Обложка'}
-                            crossorigin="anonymous"
                             class="w-full h-72 md:h-full object-cover transition-opacity duration-500 {imageLoaded ? 'opacity-100' : 'opacity-0'}"
                             loading="lazy"
                             onload={() => imageLoaded = true}
