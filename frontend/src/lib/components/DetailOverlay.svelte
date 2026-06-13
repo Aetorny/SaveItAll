@@ -80,24 +80,19 @@
         try {
             isCapturing = true;
 
-            // 1. Создаем точную копию карточки
             const clone = cardElement.cloneNode(true) as HTMLElement;
 
-            // 2. Снимаем ограничения высоты с главного контейнера
-            // Убираем Tailwind класс max-h-[calc(100vh-2rem)]
             clone.className = clone.className.replace(/max-h-\[.*?\]/g, ''); 
             clone.style.maxHeight = 'none';
             clone.style.height = 'auto';
-            clone.style.transform = 'none'; // Убираем анимацию
+            clone.style.transform = 'none';
 
-            // 3. Прячем копию ПОД текущей карточкой, чтобы она рендерилась браузером, но была невидима
             clone.style.position = 'absolute';
             clone.style.top = '0';
             clone.style.left = '0';
             clone.style.zIndex = '-1'; 
             clone.style.opacity = '1';
 
-            // 4. Растягиваем внутренний скролл
             const clonedScroll = clone.querySelector('.custom-scrollbar') as HTMLElement;
             if (clonedScroll) {
                 clonedScroll.style.overflow = 'visible';
@@ -112,42 +107,35 @@
                 }
             }
 
-            // 5. ВАЖНО: Убираем lazy-loading у картинок, иначе они будут пустыми в копии
             const images = clone.querySelectorAll('img');
             images.forEach(img => {
                 img.removeAttribute('loading');
             });
 
-            // 6. Удаляем ненужные кнопки
             const excludes = clone.querySelectorAll('.exclude-from-screenshot');
             excludes.forEach(el => el.remove());
 
-            // 7. Добавляем копию в ТОТ ЖЕ родительский контейнер (чтобы сохранились темы и CSS переменные)
             if (cardElement.parentElement) {
                 cardElement.parentElement.appendChild(clone);
             }
 
-            // 8. ВАЖНО: Даем браузеру время (150мс) применить стили и рассчитать высоту
             await new Promise(resolve => setTimeout(resolve, 150));
 
-            // 9. Делаем снимок
             const blob = await htmlToImage.toBlob(clone, {
                 quality: 1.0,
                 pixelRatio: 2, 
-                backgroundColor: '#1a1a1a', // Если фон всё еще черный, убедитесь что этот цвет подходит под вашу тему
+                backgroundColor: '#1a1a1a',
                 style: {
-                    margin: '0' // Сбрасываем возможные внешние отступы
+                    margin: '0'
                 }
             });
 
-            // 10. Убираем копию из DOM
             if (cardElement.parentElement && clone.parentNode === cardElement.parentElement) {
                 cardElement.parentElement.removeChild(clone);
             }
 
             if (!blob) throw new Error('Не удалось сгенерировать изображение');
 
-            // 11. Сохранение файла
             const safeTitle = (item.title || 'card').replace(/[^a-z0-9а-яё]/gi, '_').toLowerCase();
             const suggestedName = `${safeTitle}_screenshot.png`;
 
@@ -179,9 +167,7 @@
             console.error('Ошибка при создании скриншота:', error);
             alert('Не удалось создать скриншот.');
             
-            // Защита от утечек: если произошла ошибка, всё равно удаляем копию
             const orphanedClone = document.body.querySelector('.exclude-from-screenshot');
-            // Немного грязный хак, но лучше так, чем оставлять мусор
         } finally {
             isCapturing = false;
         }
