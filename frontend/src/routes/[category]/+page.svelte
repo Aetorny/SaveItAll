@@ -41,6 +41,7 @@
     let showFilters = $state(false);
     let minRating = $state(0);
     let sortBy = $state<'relevancy' | 'rating' | 'name'>('relevancy');
+    let sortDesc = $state(true); 
 
     let selectedTags = $state<string[]>([]);
     let showTagPicker = $state(false);
@@ -112,6 +113,9 @@
             result = [...result].sort((a, b) =>
                 (a.title ?? '').localeCompare(b.title ?? '')
             );
+        }
+        if (sortDesc) {
+            result = [...result].reverse();
         }
 
         return result;
@@ -575,6 +579,25 @@
                                 {label}
                             </button>
                         {/each}
+
+                        <div class="w-px h-5 bg-text-muted/30 mx-1 self-center rounded-full"></div>
+
+                        <button
+                            onclick={() => sortDesc = !sortDesc}
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-100 bg-surface text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                            title={sortDesc ? 'Сортировать по убыванию' : 'Сортировать по возрастанию'}
+                        >
+                            <span>{sortDesc ? 'По убыванию' : 'По возрастанию'}</span>
+                            
+                            <svg 
+                                class="w-3.5 h-3.5 transition-transform duration-300 {sortDesc ? '' : 'rotate-180'}" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
