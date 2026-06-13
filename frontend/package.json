@@ -25,6 +25,7 @@
 	"dependencies": {
 		"@lucide/svelte": "^1.17.0",
 		"@tailwindcss/vite": "^4.3.0",
+		"html-to-image": "^1.11.13",
 		"lucide-svelte": "^1.0.1",
 		"svelte-dnd-action": "^0.9.69",
 		"tailwindcss": "^4.3.0"
