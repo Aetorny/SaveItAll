@@ -1,7 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
+import sys
 import json
+from settings import IS_EXE
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./media.db"
 
@@ -18,7 +20,10 @@ def get_db():
     finally:
         db.close()
 
-BACKEND_FOLDER = os.path.dirname(os.path.abspath(__file__))
+if IS_EXE:
+    BACKEND_FOLDER = os.path.dirname(sys.executable)
+else:
+    BACKEND_FOLDER = os.path.dirname(os.path.abspath(__file__)) # type: ignore
 
 if not os.path.exists(os.path.join(BACKEND_FOLDER, 'tags.json')):
     with open(os.path.join(BACKEND_FOLDER, 'tags.json'), 'w') as f:
