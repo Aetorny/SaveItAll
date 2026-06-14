@@ -23,3 +23,11 @@ export const toastStore = {
         toasts = toasts.filter(t => t.id !== id);
     }
 };
+
+export function addToast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) {
+    const id = ++toastId;
+    toasts = [...toasts, { id, message, type, duration }];
+    setTimeout(() => {
+        toasts = toasts.filter(t => t.id !== id);
+    }, duration);
+}

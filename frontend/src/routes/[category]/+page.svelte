@@ -2,7 +2,8 @@
     import { AlertTriangle, Trash2 } from 'lucide-svelte';
     import { fade } from 'svelte/transition';
     import { invalidateAll } from '$app/navigation';
-    import { findImporter } from '$lib/index';
+    import { findImporter, type ImportedMediaData } from '$lib/index';
+    import { addToast } from '$lib/states/toasts.svelte.js'
     
     import { api } from '$lib/api';
     import { toastStore } from '$lib/states/toasts.svelte';
@@ -92,6 +93,71 @@
 
         return sortedResult;
     });
+
+    async function fetchHtmlFromUrl(url: string) {
+        try {
+            const res = await fetch(url, { method: 'GET', headers: { 'Accept': 'text/html' } });
+            if (res.ok) return await res.text();
+        } catch (e) {
+            console.warn('Direct HTML fetch failed, fallback to proxy', e);
+        }
+        const proxyUrl = `http://localhost:8000/api/fetch-url?url=${encodeURIComponent(url)}`;
+        const proxyRes = await fetch(proxyUrl);
+        if (!proxyRes.ok) {
+            throw new Error(`Не удалось загрузить страницу: ${await proxyRes.text()}`);
+        }
+        return await proxyRes.text();
+    }
+
+    function stripHtml(html: string | null | undefined) {
+        if (!html) return '';
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return (doc.body.textContent || '').trim();
+    }
+
+    function normalizeUrl(u: string | null | undefined) {
+        if (!u) return u;
+        if (u.startsWith('//')) return 'https:' + u;
+        return u;
+    }
+
+    async function importFromSource() {
+        formData.source_url = sourceUrl.trim();
+        if (!importer || !formData.source_url) {
+            importError = 'Ссылка не поддерживается для импорта.';
+            return;
+        }
+        importError = '';
+        importState = 'loading';
+        try {
+            let importedData: ImportedMediaData;
+
+            if (importer.fetchAndParse) {
+                importedData = await importer.fetchAndParse(formData.source_url);
+            } else if (importer.parseHtml) {
+                const html = await fetchHtmlFromUrl(formData.source_url);
+                importedData = importer.parseHtml(html, formData.source_url);
+            } else {
+                throw new Error("У импортера нет метода обработки данных.");
+            }
+
+            formData = {
+                ...formData,
+                title: importedData.title ?? formData.title,
+                description: importedData.description ? stripHtml(importedData.description) : formData.description,
+                cover_url: importedData.cover_url ? normalizeUrl(importedData.cover_url) ?? formData.cover_url : formData.cover_url,
+                source_url: importedData.source_url,
+            };
+            sourceUrl = formData.source_url;
+            addToast(`Импортировано из ${importer.name}`, 'success');
+        } catch (err) {
+            importError = err instanceof Error ? err.message : String(err);
+            addToast('Ошибка импорта', 'error');
+            console.error(err);
+        } finally {
+            importState = 'idle';
+        }
+    }
 
     async function createGlobalTag(tag: string) {
         if (!tag.trim()) return;
@@ -203,7 +269,7 @@
 <ItemModal
     show={showModal} {editingId} {formData} {itemTags} {allTags} {sourceUrl} {importer} {importError} {importState}
     on:close={closeModal} on:submit={submitItem} on:createTag={(e) => createGlobalTag(e.detail)}
-    on:sourceUrlChange={(e) => sourceUrl = e.detail}
+    on:sourceUrlChange={(e) => sourceUrl = e.detail} on:import={importFromSource}
     on:toggleTag={(e) => {
         itemTags = itemTags.includes(e.detail) ? itemTags.filter(t => t !== e.detail) : [...itemTags, e.detail];
     }}
