@@ -40,6 +40,19 @@
 
     const flipDurationMs = 250;
 
+    let mainContainer: HTMLElement | undefined;
+
+    afterNavigate(() => {
+        if (mainContainer) {
+            mainContainer.scrollTop = 0; 
+        }
+
+        const path = window.location.pathname;
+        if (sidebarPaths.includes(path)) {
+            saveLastTab(path);
+        }
+    });
+
     function loadStoredOrder() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
@@ -89,13 +102,6 @@
         if (sidebarPaths.includes(currentPath)) {
             saveLastTab(currentPath);
         }
-        
-        afterNavigate(() => {
-            const path = window.location.pathname;
-            if (sidebarPaths.includes(path)) {
-                saveLastTab(path);
-            }
-        });
     });
 
     function handleDndConsider(e: CustomEvent<{ items: typeof defaultItems }>) {
@@ -196,7 +202,7 @@
         </div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto custom-scrollbar relative" onscroll={handleScroll}>
+    <main bind:this={mainContainer} class="flex-1 overflow-y-auto custom-scrollbar relative" onscroll={handleScroll}>
         <div class="animated-bg">
             <div class="bg-orb bg-orb-1"></div>
             <div class="bg-orb bg-orb-2"></div>
