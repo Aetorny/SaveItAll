@@ -13,11 +13,27 @@
             rating?: number;
             comment?: string;
         }>;
+        filters?: any;
         deleteConfirmId?: number | null;
         loading?: boolean;
     }
+    
+    let { items, filters, deleteConfirmId = null, loading = false }: Props = $props();
 
-    let { items, deleteConfirmId = null, loading = false }: Props = $props();
+    let displayLimit = $state(60);
+
+    $effect(() => {
+        filters.query;
+        filters.sortBy;
+        filters.sortDesc;
+        filters.selectedTags;
+        filters.minRating;
+        filters.exactMatch;
+
+        displayLimit = 60;
+    });
+
+    let visibleItems = $derived(items.slice(0, displayLimit));
 
     const dispatch = createEventDispatcher<{
         add: void;
@@ -41,6 +57,19 @@
     function handleDelete(e: CustomEvent) {
         dispatch('delete', e.detail);
     }
+
+    function intersectionObserver(node: HTMLElement) {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                displayLimit += 60;
+            }
+        }, { rootMargin: '400px' });
+
+        observer.observe(node);
+        return {
+            destroy() { observer.disconnect(); }
+        };
+    }
 </script>
 
 {#if loading}
@@ -55,7 +84,7 @@
     </div>
 {:else if items.length > 0}
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
-        {#each items as item, index (item.id)}
+        {#each visibleItems as item, index (item.id)}
             <div style="content-visibility: auto; contain-intrinsic-size: auto 340px;">
                 <MediaCard 
                     {item} 
@@ -67,6 +96,15 @@
                 />
             </div>
         {/each}
+
+        {#if items.length > displayLimit}
+            <div 
+                use:intersectionObserver
+                class="h-10 w-full flex items-center justify-center text-sm text-gray-400"
+            >
+                Загрузка следующих элементов...
+            </div>
+        {/if}
     </div>
 {:else}
     <div class="flex flex-col items-center justify-center py-24 animate-fade-in" in:fade={{ duration: 200 }}>

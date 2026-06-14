@@ -48,13 +48,18 @@
         query: '', minRating: 0, sortBy: 'relevancy', sortDesc: true, selectedTags: [], exactMatch: false
     });
 
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
     let filteredItems = $derived.by(() => {
         let result = items;
+
         if (filters.query.trim()) {
             const q = filters.query.toLowerCase();
             result = result.filter(i => i.title?.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q));
         }
-        if (filters.minRating > 0) result = result.filter(i => (i.rating ?? 0) >= filters.minRating);
+        if (filters.minRating > 0) {
+            result = result.filter(i => (i.rating ?? 0) >= filters.minRating);
+        }
         if (filters.selectedTags.length > 0) {
             result = result.filter(i => {
                 const tags = i.tags ?? [];
@@ -63,10 +68,24 @@
                     : filters.selectedTags.some(t => tags.includes(t));
             });
         }
-        if (filters.sortBy === 'rating') result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-        else if (filters.sortBy === 'name') result = [...result].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''));
-        
-        return filters.sortDesc ? [...result].reverse() : result;
+
+        if (filters.sortBy === 'relevancy' && !filters.sortDesc) {
+            return result;
+        }
+
+        const sortedResult = [...result];
+
+        if (filters.sortBy === 'rating') {
+            sortedResult.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+        } else if (filters.sortBy === 'name') {
+            sortedResult.sort((a, b) => collator.compare(a.title ?? '', b.title ?? ''));
+        }
+
+        if (filters.sortDesc) {
+            sortedResult.reverse();
+        }
+
+        return sortedResult;
     });
 
     async function fetchItems() { await invalidate(() => true); }
@@ -162,7 +181,7 @@
 {/if}
 
 <MediaGrid 
-    items={filteredItems} {deleteConfirmId}
+    items={filteredItems} {filters} {deleteConfirmId}
     on:add={openAddModal} on:select={(e) => selectedItem = e.detail}
     on:edit={(e) => openEditModal(e.detail)} on:delete={(e) => deleteItem(e.detail)}
 />
