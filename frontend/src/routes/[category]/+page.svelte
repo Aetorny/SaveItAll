@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { AlertTriangle } from 'lucide-svelte';
+    import { AlertTriangle, Trash2 } from 'lucide-svelte';
     import { fade } from 'svelte/transition';
-    import { invalidate } from '$app/navigation';
+    import { invalidateAll } from '$app/navigation';
     import { findImporter } from '$lib/index';
     
     import { api } from '$lib/api';
@@ -31,7 +31,8 @@
     let allTags = $derived(data.allTags ?? []);
     let error = $derived(data.error ?? '');
 
-    let selectedItem = $state<any | null>(null);
+    let selectedItemId = $state<number | null>(null);
+    let selectedItem = $derived(items.find(i => i.id === selectedItemId) ?? null);
     let showModal = $state(false);
     let editingId = $state<number | null>(null);
     let deleteConfirmId = $state<number | null>(null);
@@ -92,13 +93,11 @@
         return sortedResult;
     });
 
-    async function fetchItems() { await invalidate(() => true); }
-
     async function createGlobalTag(tag: string) {
         if (!tag.trim()) return;
         try {
             await api.createTag(tag.trim());
-            await fetchItems();
+            await invalidateAll();
             toastStore.add('Тег создан', 'success');
         } catch (e) { toastStore.add('Не удалось создать тег', 'error'); }
     }
@@ -108,7 +107,7 @@
         try {
             await api.deleteTag(tag);
             filters.selectedTags = filters.selectedTags.filter(t => t !== tag);
-            await fetchItems();
+            await invalidateAll();
             toastStore.add('Тег удалён', 'success');
         } catch (e) { toastStore.add('Не удалось удалить тег', 'error'); }
     }
@@ -118,7 +117,7 @@
         try {
             await api.saveItem(payload, editingId);
             closeModal();
-            fetchItems();
+            await invalidateAll();
             toastStore.add(editingId ? 'Элемент обновлён' : 'Элемент добавлен', 'success');
         } catch (e: any) { toastStore.add(e.message, 'error'); }
     }
@@ -131,8 +130,8 @@
         }
         try {
             await api.deleteItem(id);
-            selectedItem = null; deleteConfirmId = null;
-            await fetchItems();
+            selectedItemId = null; deleteConfirmId = null;
+            await invalidateAll();
             toastStore.add('Элемент удалён', 'success');
         } catch (e) { toastStore.add('Ошибка при удалении', 'error'); }
     }
@@ -148,13 +147,13 @@
         formData = { ...item };
         sourceUrl = item.source_url || '';
         itemTags = [...(item.tags ?? [])];
-        showModal = true; selectedItem = null;
+        showModal = true; selectedItemId = null;
     }
 
     function closeModal() { showModal = false; editingId = null; }
 
     function handleKeydown(e: KeyboardEvent) {
-        if (e.key === 'Escape') { selectedItem = null; closeModal(); }
+        if (e.key === 'Escape') { selectedItemId = null; closeModal(); }
     }
 </script>
 
@@ -186,18 +185,18 @@
 
 <MediaGrid 
     items={filteredItems} {filters} {deleteConfirmId}
-    on:add={openAddModal} on:select={(e) => selectedItem = e.detail}
+    on:add={openAddModal} on:select={(e) => selectedItemId = e.detail.id}
     on:edit={(e) => openEditModal(e.detail)} on:delete={(e) => deleteItem(e.detail)}
 />
 
 {#if selectedItem}
     <DetailOverlay
         item={selectedItem} {deleteConfirmId} {allTags}
-        on:close={() => selectedItem = null} on:edit={(e) => openEditModal(e.detail)}
+        on:close={() => selectedItemId = null} on:edit={(e) => openEditModal(e.detail)}
         on:delete={(e) => deleteItem(e.detail)}
-        on:addTag={async (e) => { await api.addTagToItem(e.detail.itemId, e.detail.tag); fetchItems(); }}
-        on:removeTag={async (e) => { await api.removeTagFromItem(e.detail.itemId, e.detail.tag); fetchItems(); }}
-        on:createTagAndAdd={async (e) => { await createGlobalTag(e.detail.tag); await api.addTagToItem(e.detail.itemId, e.detail.tag); fetchItems(); }}
+        on:addTag={async (e) => { await api.addTagToItem(e.detail.itemId, e.detail.tag); await invalidateAll(); }}
+        on:removeTag={async (e) => { await api.removeTagFromItem(e.detail.itemId, e.detail.tag); await invalidateAll(); }}
+        on:createTagAndAdd={async (e) => { await createGlobalTag(e.detail.tag); await api.addTagToItem(e.detail.itemId, e.detail.tag); await invalidateAll(); }}
     />
 {/if}
 
@@ -215,7 +214,9 @@
          <div class="absolute inset-0 modal-overlay" onclick={() => tagToDelete = null}></div>
          <div class="relative w-full max-w-sm glass-panel-strong rounded-2xl p-6 shadow-2xl">
              <h3 class="text-lg font-bold text-text-primary mb-2">Удалить тег?</h3>
-             <button onclick={() => { deleteGlobalTag(tagToDelete); tagToDelete = null; }}>Удалить</button>
+             <button onclick={() => { deleteGlobalTag(tagToDelete); tagToDelete = null; }}
+             class="flex items-center justify-center gap-2 px-5 py-2.5 bg-danger-soft border border-danger/20 text-danger rounded-xl hover:bg-danger hover:text-white transition-all duration-200 font-medium text-sm group"
+             ><Trash2 size={16} class="group-hover:scale-110 transition-transform" />Удалить</button>
          </div>
     </div>
 {/if}

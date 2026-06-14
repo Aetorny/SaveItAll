@@ -133,7 +133,6 @@ def add_tag(item_id: int, tag: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Элемент не найден")
 
     db_item.tags.append(tag) if db_item.tags is not None and tag not in db_item.tags else None
-    print(db_item.tags)
 
     db.commit()
     db.refresh(db_item)
