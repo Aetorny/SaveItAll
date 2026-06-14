@@ -2,7 +2,7 @@
     import { AlertTriangle } from 'lucide-svelte';
     import { fade } from 'svelte/transition';
     import { invalidate } from '$app/navigation';
-    import { findImporter, type ImportedMediaData } from '$lib/index';
+    import { findImporter } from '$lib/index';
     
     import { api } from '$lib/api';
     import { toastStore } from '$lib/states/toasts.svelte';

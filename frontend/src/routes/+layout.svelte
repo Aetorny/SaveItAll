@@ -16,8 +16,8 @@
         ChevronRight
     } from 'lucide-svelte';
     import { page } from '$app/stores';
-    import { fly, fade, scale } from 'svelte/transition';
-    import { quintOut, backOut } from 'svelte/easing';
+    import { fly } from 'svelte/transition';
+    import { quintOut } from 'svelte/easing';
 
     const STORAGE_KEY = 'sidebar-item-order';
     const LAST_TAB_KEY = 'sidebar-last-tab';

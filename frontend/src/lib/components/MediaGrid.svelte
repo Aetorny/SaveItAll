@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Plus, Image as ImageIcon, SearchX, Sparkles } from 'lucide-svelte';
+    import { Plus, SearchX, Sparkles } from 'lucide-svelte';
     import MediaCard from './MediaCard.svelte';
     import { createEventDispatcher } from 'svelte';
     import { fade } from 'svelte/transition';

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { X, Sparkles, Loader2, Link2, AlertCircle, Check, Plus, Tag } from 'lucide-svelte';
     import { fade, scale, fly } from 'svelte/transition';
-    import { quintOut, backOut } from 'svelte/easing';
+    import { backOut } from 'svelte/easing';
     import RatingSlider from './RatingSlider.svelte';
     import type { Importer } from '$lib/index';
     import { createEventDispatcher } from 'svelte';
