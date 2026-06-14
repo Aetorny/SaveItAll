@@ -13,10 +13,11 @@
         ScrollText,
         GripVertical,
         Sparkles,
-        ChevronRight
+        ChevronRight,
+        ArrowUp
     } from 'lucide-svelte';
     import { page } from '$app/stores';
-    import { fly } from 'svelte/transition';
+    import { fade, fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
 
     const STORAGE_KEY = 'sidebar-item-order';
@@ -41,6 +42,7 @@
     const flipDurationMs = 250;
 
     let mainContainer: HTMLElement | undefined;
+    let showScrollTopButton = $state(false);
 
     afterNavigate(() => {
         if (mainContainer) {
@@ -93,6 +95,17 @@
         const scrollTop = target.scrollTop;
         const scrollHeight = target.scrollHeight - target.clientHeight;
         scrollProgress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+
+        showScrollTopButton = scrollTop > 300;
+    }
+
+    function scrollToTop() {
+        if (mainContainer) {
+            mainContainer.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
     }
 
     onMount(() => {
@@ -224,5 +237,16 @@
             {/if}
             <slot />
         </div>
+
+        {#if showScrollTopButton}
+            <button
+                onclick={scrollToTop}
+                transition:fade={{ duration: 200 }}
+                class="fixed bottom-6 right-6 z-50 p-3 rounded-xl bg-void-light border border-border-subtle text-text-secondary hover:text-text-primary hover:border-accent/50 shadow-lg shadow-black/50 hover:scale-110 active:scale-95 transition-all duration-200 group"
+                title="Наверх"
+            >
+                <ArrowUp size={20} class="group-hover:-translate-y-0.5 transition-transform duration-200" />
+            </button>
+        {/if}
     </main>
 </div>
