@@ -9,6 +9,8 @@
 - **Быстрое добавление** — вставь ссылку с поддерживаемого сайта, данные подтянутся автоматически
 - **Теги и фильтры** — сортируй и ищи по тегам, рейтингу, тексту внутри карточки
 - **Скриншот карточек**
+- **Экспорт/Импорт** - экспортируй данные из sqlite базы данных в json для простого переноса данных
+- **Лёгкое добавление новых парсеров** - все парсеры удобно хранятся в `frontend\src\lib\parsers`
 
 ## Поддерживаемые сайты
 
@@ -17,7 +19,7 @@
 | [Shikimori](https://shikimori.io) | Аниме, манга, ранобэ |
 | [Steam](https://store.steampowered.com) | Игры |
 | [Кинопоиск](https://www.kinopoisk.ru) | Фильмы, сериалы |
-| [MangaLib / RanobeLib / HentaiLib / AnimeLib](https://mangalib.org) | Манга, ранобэ, аниме |
+| [MangaLib / RanobeLib / HentaiLib / AnimeLib](https://mangalib.me) | Манга, ранобэ, аниме |
 | [Remanga](https://remanga.org) | Манга |
 | [ЛитРес](https://www.litres.ru) | Книги, аудиокниги |
 | [Читай-город](https://www.chitai-gorod.ru) | Книги |
