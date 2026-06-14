@@ -19,6 +19,10 @@ def auto_migrate_database(engine: Engine):
     with engine.connect() as conn:
         from sqlalchemy import inspect
         inspector = inspect(engine)
+
+        if not inspector.has_table("media_items"):
+            print("Таблица media_items не существует. Миграция не требуется.")
+            return
         
         columns = [col['name'] for col in inspector.get_columns('media_items')]
         
