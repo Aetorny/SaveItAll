@@ -56,14 +56,16 @@
 {:else if items.length > 0}
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
         {#each items as item, index (item.id)}
-            <MediaCard 
-                {item} 
-                {index} 
-                {deleteConfirmId}
-                on:click={handleSelect}
-                on:edit={handleEdit}
-                on:delete={handleDelete}
-            />
+            <div style="content-visibility: auto; contain-intrinsic-size: auto 340px;">
+                <MediaCard 
+                    {item} 
+                    {index} 
+                    {deleteConfirmId}
+                    on:click={handleSelect}
+                    on:edit={handleEdit}
+                    on:delete={handleDelete}
+                />
+            </div>
         {/each}
     </div>
 {:else}
