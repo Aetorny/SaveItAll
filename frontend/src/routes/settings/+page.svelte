@@ -1,7 +1,8 @@
 <script lang="ts">
     import { 
         Trash2, AlertTriangle, RotateCcw, Info, Database, 
-        Check, Link, ExternalLink, Download, Upload, X, CloudDownload, FileJson, Settings2
+        Check, Link, ExternalLink, Download, Upload, X, CloudDownload, FileJson, Settings2,
+        Gamepad2, Tv, Clapperboard, BookOpen, Book, ScrollText, Film, Music, Heart, Star, Compass, Flame
     } from 'lucide-svelte';
     import { fade, fly, scale } from 'svelte/transition';
     import { quintOut, backOut } from 'svelte/easing';
@@ -36,19 +37,43 @@
         { id: 'other', label: 'Другое' }
     ];
 
+    const availableIcons: Record<string, any> = { 
+        Gamepad2, Tv, Clapperboard, BookOpen, Book, ScrollText, Film, Music, Heart, Star, Compass, Flame 
+    };
+    const STORAGE_KEYS = ['sidebar-item-order', 'sidebar-last-tab', 'sidebar-item-custom'];
+
     // svelte-ignore non_reactive_update
     let fileInput: HTMLInputElement;
     // svelte-ignore non_reactive_update
     let shikimoriInput: HTMLInputElement;
 
-    const STORAGE_KEYS = ['sidebar-item-order', 'sidebar-last-tab'];
-
     const tabs = [
         { id: 'data', label: 'Данные', icon: Database },
         { id: 'import', label: 'Импорт', icon: CloudDownload },
+        { id: 'categories', label: 'Категории', icon: Settings2 },
         { id: 'sites', label: 'Сайты', icon: Link },
         { id: 'about', label: 'О приложении', icon: Info }
     ];
+
+    const defaultCategories = [
+        { id: 1, defaultName: 'Игры', defaultIcon: 'Gamepad2' },
+        { id: 2, defaultName: 'Аниме', defaultIcon: 'Tv' },
+        { id: 3, defaultName: 'Фильмы', defaultIcon: 'Clapperboard' },
+        { id: 4, defaultName: 'Манга', defaultIcon: 'BookOpen' },
+        { id: 5, defaultName: 'Книги', defaultIcon: 'Book' },
+        { id: 6, defaultName: 'Ранобэ', defaultIcon: 'ScrollText' },
+    ];
+    let customCategories = $state<{ id: number; name: string; icon: string }[]>([]);
+    $effect(() => {
+        const storedCustom = localStorage.getItem('sidebar-item-custom');
+        const customMap = storedCustom ? JSON.parse(storedCustom) : {};
+        
+        customCategories = defaultCategories.map(cat => ({
+            id: cat.id,
+            name: customMap[cat.id]?.name || cat.defaultName,
+            icon: customMap[cat.id]?.icon || cat.defaultIcon
+        }));
+    });
 
     const supportedSites = [
         'https://www.chitai-gorod.ru/', 'https://www.kinopoisk.ru/', 'https://www.litres.ru/',
@@ -64,6 +89,18 @@
         success: 0,
         failed: 0
     });
+
+    function saveCategoryChanges() {
+        const customMap: Record<number, { name: string; icon: string }> = {};
+        customCategories.forEach(cat => {
+            customMap[cat.id] = { name: cat.name, icon: cat.icon };
+        });
+        
+        localStorage.setItem('sidebar-item-custom', JSON.stringify(customMap));
+        showToast('Настройки категорий успешно сохранены');
+        
+        window.dispatchEvent(new Event('sidebar-update'));
+    }
 
     async function fetchHtmlFromUrl(url: string) {
         try {
@@ -89,6 +126,7 @@
         try {
             STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
             showToast('Локальные настройки очищены');
+            window.dispatchEvent(new Event('sidebar-update'));
             confirmModal = { show: false, type: null };
         } catch {
             showToast('Ошибка при очистке локальных данных', 'error');
@@ -410,6 +448,57 @@
                             <p class="text-xs">Пожалуйста, не закрывайте страницу. Процесс идет с задержкой (1 сек на элемент), чтобы избежать блокировки по IP от Shikimori.</p>
                         </div>
                     {/if}
+                </div>
+            </div>
+        {/if}
+
+        {#if activeTab === 'categories'}
+            <div in:fade={{ duration: 200 }} class="space-y-6">
+                <div class="space-y-1">
+                    <h2 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                        <Settings2 size={18} class="text-accent" /> Кастомизация меню
+                    </h2>
+                    <p class="text-sm text-text-secondary">Установите свои названия и иконки для разделов трекера.</p>
+                </div>
+
+                <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                    {#each customCategories as cat (cat.id)}
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 rounded-xl bg-surface/40 border border-border-subtle hover:bg-surface/60 transition-colors">
+                            
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div class="w-10 h-10 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center text-accent">
+                                    <svelte:component this={availableIcons[cat.icon]} size={20} />
+                                </div>
+                                <select 
+                                    bind:value={cat.icon}
+                                    class="bg-surface border border-border-subtle text-text-primary text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-accent/50 cursor-pointer h-10 w-36"
+                                >
+                                    {#each Object.keys(availableIcons) as iconName}
+                                        <option value={iconName}>{iconName}</option>
+                                    {/each}
+                                </select>
+                            </div>
+
+                            <div class="flex-1">
+                                <input 
+                                    type="text" 
+                                    bind:value={cat.name} 
+                                    class="w-full h-10 bg-surface border border-border-subtle text-text-primary text-sm rounded-xl px-4 focus:outline-none focus:border-accent/50 transition-colors"
+                                    placeholder="Название категории"
+                                />
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+
+                <div class="pt-2 border-t border-border-subtle flex justify-end">
+                    <button 
+                        onclick={saveCategoryChanges} 
+                        class="w-full sm:w-auto px-6 py-2.5 bg-accent text-white rounded-xl hover:bg-accent/80 transition-all text-sm font-medium flex items-center justify-center gap-2 shadow-md shadow-accent/20"
+                    >
+                        <Check size={16} />
+                        Сохранить изменения
+                    </button>
                 </div>
             </div>
         {/if}

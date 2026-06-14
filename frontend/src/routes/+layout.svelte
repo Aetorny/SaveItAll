@@ -4,18 +4,12 @@
     import { afterNavigate, goto } from '$app/navigation';
     import { dndzone } from 'svelte-dnd-action';
     import { 
-        Settings, 
-        Gamepad2, 
-        Tv, 
-        Clapperboard, 
-        BookOpen, 
-        Book, 
-        ScrollText,
-        GripVertical,
-        Sparkles,
-        ChevronRight,
-        ArrowUp
+        Gamepad2, Tv, Clapperboard, BookOpen, Book, ScrollText,
+        Film, Music, Heart, Star, Compass, Flame,
+        GripVertical, Settings, ChevronRight,
+        Sparkles, ArrowUp
     } from 'lucide-svelte';
+
     import { page } from '$app/stores';
     import { fade, fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
@@ -44,6 +38,10 @@
     let mainContainer: HTMLElement | undefined;
     let showScrollTopButton = $state(false);
 
+    const availableIcons: Record<string, any> = { 
+        Gamepad2, Tv, Clapperboard, BookOpen, Book, ScrollText, Film, Music, Heart, Star, Compass, Flame 
+    };
+
     afterNavigate(() => {
         if (mainContainer) {
             mainContainer.scrollTop = 0; 
@@ -57,20 +55,56 @@
 
     function loadStoredOrder() {
         try {
+            const storedCustom = localStorage.getItem('sidebar-item-custom');
+            let customMap = storedCustom ? JSON.parse(storedCustom) : {};
+
+            const localizedDefaults = defaultItems.map(item => {
+                if (customMap[item.id]) {
+                    return {
+                        ...item,
+                        name: customMap[item.id].name || item.name,
+                        icon: availableIcons[customMap[item.id].icon] || item.icon
+                    };
+                }
+                return item;
+            });
+
             const stored = localStorage.getItem(STORAGE_KEY);
-            if (!stored) return;
+            if (!stored) {
+                items = localizedDefaults;
+                return;
+            }
             const order = JSON.parse(stored);
-            if (!Array.isArray(order)) return;
+            if (!Array.isArray(order)) {
+                items = localizedDefaults;
+                return;
+            }
             const orderedItems = order
-                .map((id: number) => defaultItems.find((item) => item.id === id))
+                .map((id: number) => localizedDefaults.find((item) => item.id === id))
                 .filter(Boolean) as typeof defaultItems;
+
             if (orderedItems.length === defaultItems.length) {
                 items = orderedItems;
+            } else {
+                items = localizedDefaults;
             }
-        } catch {
-            // ignore invalid storage
-        }
+        } catch {}
     }
+
+    onMount(() => {
+        loadStoredOrder();
+        
+        window.addEventListener('sidebar-update', loadStoredOrder);
+        
+        const currentPath = window.location.pathname;
+        if (sidebarPaths.includes(currentPath)) {
+            saveLastTab(currentPath);
+        }
+
+        return () => {
+            window.removeEventListener('sidebar-update', loadStoredOrder);
+        };
+    });
 
     function saveStoredOrder(list: typeof defaultItems) {
         try {
