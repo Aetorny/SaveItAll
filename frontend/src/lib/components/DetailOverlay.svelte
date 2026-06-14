@@ -15,6 +15,7 @@
             rating?: number;
             comment?: string;
             tags?: string[];
+            created_date?: string;
         } | null;
         deleteConfirmId?: number | null;
         allTags?: string[];
@@ -333,6 +334,14 @@
                             </div>
                         </div>
                     </div>
+
+                    {#if item.created_date}
+                        <div class="inline-flex items-center gap-2 bg-surface/40 border border-border-subtle/60 rounded-lg px-2.5 py-1 text-xs" 
+                            in:fly={{ y: 5, duration: 300, easing: quintOut }}>
+                            <span class="text-text-muted font-medium">Дата создания:</span>
+                            <span class="text-text-primary font-semibold">{item.created_date}</span>
+                        </div>
+                    {/if}
 
                     <div 
                         class="flex flex-wrap gap-3 pt-4 mt-4 border-t border-border-subtle shrink-0"

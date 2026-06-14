@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from database import get_db, load_tags, save_tags
 from models import MediaItemDB
 from schemas import MediaItem, MediaItemCreate, MediaItemBase
+from utils import get_current_date
 
 router = APIRouter(prefix="/api", tags=["API"])
 tags = load_tags()
@@ -23,7 +24,21 @@ def process_cover_url(cover: str | None) -> str:
 
 @router.get("/items/{category}", response_model=List[MediaItem])
 def get_items(category: str, db: Session = Depends(get_db)):
-    return db.query(MediaItemDB).filter(MediaItemDB.category == category).all()
+    items = db.query(MediaItemDB).filter(MediaItemDB.category == category).all()
+    
+    need_commit = False
+    for item in items:
+        if item.created_date is None:
+            item.created_date = get_current_date()
+            db.add(item)
+            need_commit = True
+
+    if need_commit:
+        db.commit()
+        for item in items:
+            db.refresh(item)
+            
+    return items
 
 @router.post("/items/", response_model=MediaItem)
 def create_item(item: MediaItemCreate, db: Session = Depends(get_db)):
@@ -74,6 +89,9 @@ def update_item(item_id: int, item: MediaItemBase, db: Session = Depends(get_db)
     db_item.comment = item.comment
     db_item.tags = item.tags
 
+    if db_item.created_date is None:
+        db_item.created_date = item.created_date
+    
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -201,7 +219,8 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
             description=item.get("description", ""),
             rating=item.get("rating"),
             comment=item.get("comment"),
-            tags=item.get("tags", [])
+            tags=item.get("tags", []),
+            created_date=item.get("created_date", get_current_date())
         )
         for tag in item.get('tags', []):
             create_tag(tag)
@@ -213,7 +232,7 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
 async def get_icon():
     if IS_EXE:
         return FileResponse(
-            get_resource_path("src/lib/assets/icon.ico"),
+            get_resource_path("src/lib/assets/icon.ico"), # type: ignore
             media_type="image/x-icon"
         )
     else:

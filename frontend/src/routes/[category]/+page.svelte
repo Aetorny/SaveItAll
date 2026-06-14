@@ -21,8 +21,8 @@
         description?: string;
         rating?: number;
         comment?: string;
-        created_at?: string;
         tags?: string[];
+        created_date?: string;
     };
 
     let { data } = $props();
