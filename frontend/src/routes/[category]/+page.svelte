@@ -55,7 +55,11 @@
 
         if (filters.query.trim()) {
             const q = filters.query.toLowerCase();
-            result = result.filter(i => i.title?.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q));
+            result = result.filter(i =>
+             i.title?.toLowerCase().includes(q)
+             || i.description?.toLowerCase().includes(q)
+             || i.comment?.toLowerCase().includes(q)
+        );
         }
         if (filters.minRating > 0) {
             result = result.filter(i => (i.rating ?? 0) >= filters.minRating);
