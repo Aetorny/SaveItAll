@@ -114,12 +114,12 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
             bind:this={modalRef}
-            class="relative w-full max-w-lg glass-panel-strong rounded-2xl shadow-2xl max-h-full overflow-y-auto custom-scrollbar"
+            class="relative w-full max-w-5xl glass-panel-strong rounded-2xl shadow-2xl max-h-full overflow-y-auto custom-scrollbar"
             transition:scale={{ duration: 200, easing: backOut, start: 1 }}
             onkeydown={handleKeydown}
         >
-            <div class="p-6 md:p-8">
-                <div class="flex items-center justify-between mb-6">
+            <div class="p-6 md:p-6">
+                <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl {isNew ? 'bg-accent/10 border border-accent/20' : 'bg-surface border border-border-subtle'} flex items-center justify-center">
                             {#if isNew}
@@ -263,7 +263,7 @@
                             id="desc" 
                             bind:value={formData.description} 
                             class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none resize-none transition-all duration-200"
-                            rows="3"
+                            rows="2"
                             placeholder="Краткое описание..."
                         ></textarea>
                     </div>
@@ -281,7 +281,7 @@
                             id="comment" 
                             bind:value={formData.comment} 
                             class="w-full bg-surface border border-border-subtle text-text-primary rounded-xl px-4 py-2.5 text-sm placeholder:text-text-muted focus:border-accent focus:outline-none resize-none transition-all duration-200"
-                            rows="2"
+                            rows="6"
                             placeholder="Ваши мысли об этом..."
                         ></textarea>
                     </div>
