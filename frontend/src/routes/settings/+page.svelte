@@ -524,7 +524,7 @@
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold text-text-primary">Save It All</h2>
-                    <p class="text-sm text-text-muted mt-1">Версия 0.0.1</p>
+                    <p class="text-sm text-text-muted mt-1">Версия 1.3.4</p>
                 </div>
                 <p class="text-sm text-text-secondary max-w-md leading-relaxed">
                     Персональный локальный трекер медиа-контента. Отслеживайте игры, аниме, фильмы, мангу, книги и ранобэ в одном удобном месте.
