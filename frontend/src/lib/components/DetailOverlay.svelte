@@ -203,7 +203,7 @@
             </button>
 
             <div class="flex flex-col md:flex-row min-h-0">
-                <div class="md:w-80 shrink-0 relative bg-surface">
+                <div class="md:w-100 shrink-0 relative bg-surface">
                     {#if item.cover_url && !imageError}
                         <img 
                             src={normalizeUrl(item.cover_url)} 
@@ -218,7 +218,6 @@
                                 <div class="w-12 h-12 rounded-full border-2 border-accent/30 border-t-accent animate-spin"></div>
                             </div>
                         {/if}
-                        <div class="absolute inset-0 bg-gradient-to-t from-void via-void/30 to-transparent md:bg-gradient-to-r"></div>
                     {:else}
                         <div class="w-full h-72 md:h-full bg-surface flex flex-col items-center justify-center gap-3">
                             <div class="w-16 h-16 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center">
