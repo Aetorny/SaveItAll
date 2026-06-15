@@ -42,14 +42,24 @@
         Gamepad2, Tv, Clapperboard, BookOpen, Book, ScrollText, Film, Music, Heart, Star, Compass, Flame 
     };
 
-    afterNavigate(() => {
-        if (mainContainer) {
+    afterNavigate(({ from, to }) => {
+        const fromPath = from?.url.pathname;
+        const toPath = to?.url.pathname;
+
+        const getTabBase = (path: string | undefined) => {
+            if (!path) return null;
+            return sidebarPaths.find(p => path === p || path.startsWith(p + '/')) || path;
+        };
+
+        const fromTab = getTabBase(fromPath);
+        const toTab = getTabBase(toPath);
+
+        if (fromTab !== toTab && mainContainer) {
             mainContainer.scrollTop = 0; 
         }
 
-        const path = window.location.pathname;
-        if (sidebarPaths.includes(path)) {
-            saveLastTab(path);
+        if (toPath && sidebarPaths.includes(toPath)) {
+            saveLastTab(toPath);
         }
     });
 
