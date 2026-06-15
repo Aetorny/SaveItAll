@@ -79,7 +79,7 @@
         'https://www.chitai-gorod.ru/', 'https://www.kinopoisk.ru/', 'https://www.litres.ru/',
         'https://remanga.org/', 'https://реманга.орг/', 'https://shikimori.io/',
         'https://store.steampowered.com/', 'https://mangalib.me/', 'https://mangalib.org/',
-        'https://ranobelib.me/', 'https://hentailib.me/', 'https://anilib.me/'
+        'https://ranobelib.me/', 'https://hentailib.me/', 'https://anilib.me/', 'https://myanimelist.net/'
     ];
 
     let importProgress = $state({

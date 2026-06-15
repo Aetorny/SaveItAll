@@ -17,6 +17,7 @@
 | Сайт | Что парсится |
 |------|-------------|
 | [Shikimori](https://shikimori.io) | Аниме, манга, ранобэ |
+| [MyAnimeList](https://myanimelist.net/) | Аниме, манга |
 | [Steam](https://store.steampowered.com) | Игры |
 | [Кинопоиск](https://www.kinopoisk.ru) | Фильмы, сериалы |
 | [MangaLib / RanobeLib / HentaiLib / AnimeLib](https://mangalib.me) | Манга, ранобэ, аниме |

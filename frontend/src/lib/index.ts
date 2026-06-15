@@ -6,6 +6,7 @@ import { remangaImporter, remangaAlternativeImporter, remangaAlternativeRussianI
 import { libFamilyImporter } from './parsers/libFamily';
 import { litresImporter } from './parsers/litres';
 import { chitaiGorodImporter } from './parsers/chitai-gorod';
+import { myanimelistImporter } from './parsers/myAnimeList';
 
 export * from './types';
 
@@ -19,6 +20,7 @@ export const importers: Importer[] = [
     libFamilyImporter,
     litresImporter,
     chitaiGorodImporter,
+    myanimelistImporter
 ];
 
 export function findImporter(url: string | undefined): Importer | null {
