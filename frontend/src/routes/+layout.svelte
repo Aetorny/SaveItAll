@@ -183,7 +183,7 @@
         return item?.name || 'Медиа';
     }
 
-    let currentCategory = $derived(sidebarPaths.find(p => $page.url.pathname === p));
+    let currentCategory = $derived(sidebarPaths.find(p => $page.url.pathname === `${basePath}${p}`));
     let pageTitle = $derived(currentCategory ? getCategoryLabel(currentCategory) : '');
     let isSettingsPage = $derived($page.url.pathname === '/settings');
 </script>
