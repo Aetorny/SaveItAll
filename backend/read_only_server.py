@@ -174,7 +174,7 @@ async def import_db():
 @api_router.get("/icon")
 async def get_icon():
     return FileResponse(
-        "../frontend/src/lib/assets/icon.ico",
+        os.path.join(BASE_DIR.parent, "frontend", "src", "lib", "assets", "icon.ico"),
         media_type="image/x-icon"
     )
 
