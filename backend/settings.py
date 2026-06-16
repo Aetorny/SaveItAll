@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 class Settings(BaseSettings):
     IS_RUN_DEV: bool = False
-    BACKEND_PORT: int = 8000
+    PORT: int = 8000
     BACKEND_IP: str = '127.0.0.1'
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_file_encoding="utf-8")
