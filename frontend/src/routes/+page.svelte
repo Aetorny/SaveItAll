@@ -31,7 +31,7 @@
 
         // Slight delay for animation
         setTimeout(() => {
-            goto(`${base}/${target}`, { replaceState: true });
+            goto(`${base}${target}`, { replaceState: true });
         }, 800);
 
         return () => clearInterval(interval);
