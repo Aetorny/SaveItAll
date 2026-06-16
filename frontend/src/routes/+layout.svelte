@@ -235,7 +235,7 @@
                         <svelte:component 
                             this={item.icon} 
                             size={22} 
-                            class="{$page.url.pathname === item.path ? item.color : 'text-text-secondary group-hover:text-text-primary'} transition-all duration-300 {$page.url.pathname === item.path ? 'scale-110' : 'group-hover:scale-110'}" 
+                            class="{$page.url.pathname === `${base}${item.path}` ? item.color : 'text-text-secondary group-hover:text-text-primary'} transition-all duration-300 {$page.url.pathname === item.path ? 'scale-110' : 'group-hover:scale-110'}" 
                         />
                         <span class="text-[10px] font-medium {$page.url.pathname === item.path ? 'text-text-primary' : 'text-text-muted group-hover:text-text-secondary'} transition-colors">{item.name}</span>
                     </a>
@@ -250,7 +250,7 @@
         <div class="p-2 border-t border-border-subtle relative">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent"></div>
             <a
-                href="{basePath}settings"
+                href="{basePath}/settings"
                 onclick={() => goto(`${basePath}settings`)}
                 class="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 relative overflow-hidden {$page.url.pathname === '/settings' ? 'bg-surface border border-border-subtle' : 'hover:bg-surface hover:border hover:border-border-subtle border border-transparent'}"
                 title="Настройки"
