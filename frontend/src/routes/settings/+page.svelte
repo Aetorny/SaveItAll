@@ -6,10 +6,9 @@
     } from 'lucide-svelte';
     import { fade, fly, scale } from 'svelte/transition';
     import { quintOut, backOut } from 'svelte/easing';
+    import { api } from '$lib/api'
 
     import { findImporter } from '$lib/index';
-
-    const API_BASE = 'http://localhost:8000';
 
     let activeTab = $state('data');
     let confirmModal = $state<{ show: boolean, type: 'local' | 'db' | null }>({ show: false, type: null });
@@ -109,12 +108,8 @@
         } catch (e) {
             console.warn('Direct HTML fetch failed, fallback to proxy', e);
         }
-        const proxyUrl = `http://localhost:8000/api/fetch-url?url=${encodeURIComponent(url)}`;
-        const proxyRes = await fetch(proxyUrl);
-        if (!proxyRes.ok) {
-            throw new Error(`Не удалось загрузить страницу: ${await proxyRes.text()}`);
-        }
-        return await proxyRes.text();
+        const proxyResText = api.fetchUrl(url);
+        return proxyResText;
     }
 
     function showToast(message: string, type: 'success' | 'error' = 'success', duration = 3000) {
@@ -135,8 +130,7 @@
 
     async function clearDatabase() {
         try {
-            const res = await fetch(`${API_BASE}/api/clear-db`, { method: 'POST' });
-            if (!res.ok) throw new Error('Ошибка сервера');
+            api.clearDataBase();
             showToast('База данных успешно очищена');
             confirmModal = { show: false, type: null };
         } catch (error) {
@@ -146,8 +140,7 @@
 
     async function handleExport() {
         try {
-            const res = await fetch(`${API_BASE}/api/export-db`, { method: 'GET' });
-            if (!res.ok) throw new Error('Ошибка сервера');
+            const res = await api.exportDataBase();
             const blob = await res.blob();
             if ('showSaveFilePicker' in window) {
                 try {
@@ -185,8 +178,7 @@
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await fetch(`${API_BASE}/api/import-db`, { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('Ошибка сервера');
+            await api.importDataBase(formData);
             showToast('Данные успешно импортированы');
         } catch (error) {
             showToast('Ошибка импорта базы данных', 'error');
@@ -276,17 +268,14 @@
                         console.warn(`Не удалось спарсить страницу: ${sourceUrl}`);
                     }
                 }
-
-                const res = await fetch(`${API_BASE}/api/items/`, {
+                await api.addNewItem({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(finalData)
                 });
-
-                if (!res.ok) throw new Error('Ошибка сохранения');
                 importProgress.success += 1;
 
-            } catch (itemError) {
+            } catch (e) {
                 importProgress.failed += 1;
             }
 

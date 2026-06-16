@@ -13,6 +13,7 @@
     import { page } from '$app/stores';
     import { fade, fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
+    import { api } from '$lib/api'
 
     const STORAGE_KEY = 'sidebar-item-order';
     const LAST_TAB_KEY = 'sidebar-last-tab';
@@ -31,7 +32,7 @@
     let hoveredItem = $state<number | null>(null);
     let isDragging = $state(false);
     let scrollProgress = $state(0);
-    const ico_path = 'http://127.0.0.1:8000/api/icon';
+    const ico_path = api.getIconPath();
 
     const flipDurationMs = 250;
 
