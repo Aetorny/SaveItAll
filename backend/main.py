@@ -1,4 +1,3 @@
-
 import os
 import pathlib
 import sys
@@ -42,7 +41,7 @@ app.include_router(frontend_router)
 config = uvicorn.Config(
     app,
     host="127.0.0.1",
-    port=8000,
+    port=settings.BACKEND_PORT,
 )
 
 server = uvicorn.Server(config)
@@ -78,14 +77,15 @@ if __name__ == "__main__":
         api_thread.start()
         webview.create_window( # type: ignore
             "Save It All",
-            f"http://127.0.0.1:{5173 if settings.IS_RUN_DEV and not IS_EXE else 8000}",
+            f"http://127.0.0.1:{5173 if settings.IS_RUN_DEV and not IS_EXE else settings.BACKEND_PORT}",
             maximized=True,
             focus=True,
         )
         user_data_dir = os.path.join(pathlib.Path.home(), ".save_it_all_data")
         webview.start(
             private_mode=False,
-            storage_path=user_data_dir
+            storage_path=user_data_dir,
+            debug=True
         )
     finally:
         server.should_exit = True
