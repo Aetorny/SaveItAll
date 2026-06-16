@@ -72,6 +72,9 @@
 
 Требования: Python 3.12+, Node.js 20+
 
+<details>
+<summary>Запуск из исходников</summary>
+
 ```bash
 # Клонировать репозиторий
 git clone https://github.com/Aetorny/SaveItAll.git
@@ -87,8 +90,35 @@ cd ..
 cd backend
 pip install -r requirements.txt
 ren .env.example .env
+
+# Запуск приложения
 python main.py
+
+# Также можно отдельно захостить как сайт
+# Отдельно запустив в разных терминалах бэкенд
+python server.py
+
+# И отдельно фронтенд
+cd ../frontend
+npm run dev
+# Сайт по умолчанию доступен на 127.0.0.1:5173
 ```
+
+</details>
+
+<details>
+<summary>Запуск через Docker Compose</summary>
+
+```bash
+# Клонировать репозиторий
+git clone https://github.com/Aetorny/SaveItAll.git
+cd SaveItAll
+
+docker-compose up
+# Сайт по умолчанию доступен на 127.0.0.1:5173
+```
+
+</details>
 
 ## Лицензия
 

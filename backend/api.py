@@ -1,9 +1,10 @@
+import os
 import json
 import urllib.request
 from urllib.parse import urlparse, quote, urlunparse
 from urllib.error import HTTPError, URLError
 from typing import Any, List
-from settings import IS_EXE, get_resource_path
+from settings import IS_EXE, get_resource_path, BASE_DIR
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
 from fastapi.responses import PlainTextResponse, FileResponse
@@ -236,6 +237,6 @@ async def get_icon():
         )
     else:
         return FileResponse(
-            "../frontend/src/lib/assets/icon.ico",
+            os.path.join(BASE_DIR, "assets", "icon.ico"),
             media_type="image/x-icon"
         )
