@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from models import MediaItemDB
 from schemas import MediaItem, MediaItemBase, MediaItemCreate
-from settings import settings
+from settings import settings, BASE_DIR
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./media.example.db"
+DB_PATH = os.path.join(BASE_DIR, "media.example.db")
+
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
