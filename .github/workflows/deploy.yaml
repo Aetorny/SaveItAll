@@ -26,10 +26,6 @@ jobs:
 
       - run: npm install
 
-      - name: Patch svelte config
-        run: |
-          sed -i "s|base: '/'|base: '/SaveItAll'|g" svelte.config.js
-
       - name: Patch API URL
         run: |
           sed -i "s|http://localhost:8000/api|https://saveitall-83zd.onrender.com/api|g" src/lib/api.ts
