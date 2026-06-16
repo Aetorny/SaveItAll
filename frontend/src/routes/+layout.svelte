@@ -14,6 +14,7 @@
     import { fade, fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import { api } from '$lib/api'
+    import { base } from '$app/paths';
 
     const STORAGE_KEY = 'sidebar-item-order';
     const LAST_TAB_KEY = 'sidebar-last-tab';
@@ -217,10 +218,10 @@
                     {/if}
 
                     <a
-                        href={item.path}
+                        href="{base}{item.path}"
                         onclick={() => {
                             saveLastTab(item.path);
-                            goto(item.path);
+                            goto(`${base}/item.path`);
                         }}
                         class="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 relative overflow-hidden {$page.url.pathname === item.path ? item.bgColor + ' ' + item.borderColor + ' border' : 'hover:bg-surface hover:border hover:border-border-subtle border border-transparent'}"
                         title={item.name}
@@ -248,8 +249,8 @@
         <div class="p-2 border-t border-border-subtle relative">
             <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent"></div>
             <a
-                href="/settings"
-                onclick={() => goto('/settings')}
+                href="{base}/settings"
+                onclick={() => goto(`${base}/settings`)}
                 class="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 relative overflow-hidden {$page.url.pathname === '/settings' ? 'bg-surface border border-border-subtle' : 'hover:bg-surface hover:border hover:border-border-subtle border border-transparent'}"
                 title="Настройки"
             >

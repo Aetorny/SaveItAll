@@ -4,6 +4,7 @@
     import { Loader2, Sparkles } from 'lucide-svelte';
     import { fade, scale } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
+    import { base } from '$app/paths';
 
     const sidebarPaths = ['/games', '/anime', '/movies', '/manga', '/books', '/light-novels'];
     const LAST_TAB_KEY = 'sidebar-last-tab';
@@ -30,7 +31,7 @@
 
         // Slight delay for animation
         setTimeout(() => {
-            goto(target, { replaceState: true });
+            goto(`${base}/${target}`, { replaceState: true });
         }, 800);
 
         return () => clearInterval(interval);
