@@ -33,7 +33,7 @@ jobs:
           sed -i "s|http://localhost:8000/api|https://saveitall-83zd.onrender.com/api|g" src/lib/api.ts
 
       - name: Build
-      - run: npm run build
+        run: npm run build
         env:
           DEPLOY: true
 
