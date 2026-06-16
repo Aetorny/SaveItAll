@@ -77,15 +77,14 @@ if __name__ == "__main__":
         api_thread.start()
         webview.create_window( # type: ignore
             "Save It All",
-            f"{settings.BACKEND_IP}:{5173 if settings.IS_RUN_DEV and not IS_EXE else settings.PORT}",
+            f"http://{settings.BACKEND_IP}:{5173 if settings.IS_RUN_DEV and not IS_EXE else settings.PORT}",
             maximized=True,
             focus=True,
         )
         user_data_dir = os.path.join(pathlib.Path.home(), ".save_it_all_data")
         webview.start(
             private_mode=False,
-            storage_path=user_data_dir,
-            debug=True
+            storage_path=user_data_dir
         )
     finally:
         server.should_exit = True
