@@ -192,7 +192,7 @@ app.include_router(api_router)
 
 config = uvicorn.Config(
     app,
-    host="127.0.0.1",
+    host=settings.BACKEND_IP,
     port=settings.BACKEND_PORT,
 )
 
