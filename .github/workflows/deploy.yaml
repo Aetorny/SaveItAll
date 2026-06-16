@@ -29,7 +29,10 @@ jobs:
         run: |
           sed -i "s|http://localhost:8000/api|https://saveitall-83zd.onrender.com/api|g" src/lib/api.ts
 
+      - name: Build
       - run: npm run build
+        env:
+          DEPLOY: true
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
