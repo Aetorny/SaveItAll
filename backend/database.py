@@ -1,10 +1,10 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.engine import Engine
-import os
-import sys
 import json
-from settings import IS_EXE
+import os
+from pathlib import Path
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./media.db"
 
@@ -46,19 +46,30 @@ def get_db():
     finally:
         db.close()
 
-if IS_EXE:
-    BACKEND_FOLDER = os.path.dirname(sys.executable)
-else:
-    BACKEND_FOLDER = os.path.dirname(os.path.abspath(__file__)) # type: ignore
+APP_NAME = "SaveItAll"
 
-if not os.path.exists(os.path.join(BACKEND_FOLDER, 'tags.json')):
-    with open(os.path.join(BACKEND_FOLDER, 'tags.json'), 'w') as f:
+if os.name == "nt":
+    data_dir = Path(os.environ["APPDATA"]) / APP_NAME
+else:
+    data_dir = Path(
+        os.environ.get(
+            "XDG_DATA_HOME",
+            Path.home() / ".local" / "share"
+        )
+    ) / APP_NAME
+
+data_dir.mkdir(parents=True, exist_ok=True)
+
+TAGS_FILE = data_dir / "tags.json"
+
+if not os.path.exists(TAGS_FILE):
+    with open(TAGS_FILE, 'w') as f:
         f.write('[]')
 
 def load_tags() -> set[str]:
-    with open(os.path.join(BACKEND_FOLDER, 'tags.json'), 'r') as f:
+    with open(TAGS_FILE, 'r') as f:
         return set(json.load(f))
 
 def save_tags(tags: set[str]):
-    with open(os.path.join(BACKEND_FOLDER, 'tags.json'), 'w') as f:
+    with open(TAGS_FILE, 'w') as f:
         json.dump(list(tags), f, indent=4, ensure_ascii=False)
