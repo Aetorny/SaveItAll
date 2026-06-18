@@ -1,0 +1,70 @@
+services:
+  frontend-build:
+    image: node:20-alpine
+    volumes:
+      - .:/app
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run build"
+
+  backend-build:
+    image: python:3.12-slim
+    volumes:
+      - .:/app
+    working_dir: /app/backend
+    depends_on:
+      frontend-build:
+        condition: service_completed_successfully
+    command:
+      - /bin/bash
+      - -c
+      - |
+        # Останавливать сборку при любой ошибке
+        set -e
+
+        echo '=== 1. Установка системных зависимостей ==='
+        apt-get update && apt-get install -y binutils curl file imagemagick ca-certificates
+        
+        echo '=== 2. Установка зависимостей Python ==='
+        pip install -r requirements.txt
+        pip install pyinstaller
+        pip install pyinstaller qtpy PySide6
+        
+        echo '=== 3. Компиляция приложения через PyInstaller ==='
+        pyinstaller --noconfirm --onefile --windowed \
+        --icon /app/backend/assets/icon.ico \
+        --hidden-import=qtpy \
+        --add-data /app/frontend/dist:dist/ \
+        --add-data /app/backend/.env.example:.env \
+        --add-data /app/backend/assets/icon.ico:src/lib/assets \
+        /app/backend/main.py
+        
+        echo '=== 4. Подготовка структуры AppDir для AppImage ==='
+        mkdir -p AppDir/usr/bin
+        cp dist/main AppDir/usr/bin/saveitall
+        convert assets/icon.ico[0] AppDir/saveitall.png
+        echo -e "[Desktop Entry]\nName=Save It All\nExec=saveitall\nIcon=saveitall\nType=Application\nCategories=Utility;" > AppDir/saveitall.desktop
+        ln -sf usr/bin/saveitall AppDir/AppRun
+        
+        echo '=== 5. Кэширование и подготовка appimagetool ==='
+        mkdir -p dist/appimagetool
+        
+        if [ ! -f dist/appimagetool/appimagetool-x86_64.AppImage ]; then
+          echo 'Кэш пуст. Скачиваем appimagetool из интернета...'
+          curl -k -LO https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          mv appimagetool-x86_64.AppImage dist/appimagetool/
+        else
+          echo 'Инструмент найден в кэше (dist/appimagetool/). Пропускаем скачивание.'
+        fi
+        
+        chmod +x dist/appimagetool/appimagetool-x86_64.AppImage
+        
+        echo '=== 6. Создание финального пакета AppImage ==='
+        export ARCH=x86_64
+        ./dist/appimagetool/appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir
+        
+        echo '=== 7. Перенос результата и очистка мусора ==='
+        mv Save_It_All-x86_64.AppImage dist/
+        
+        rm -rf build AppDir main.spec dist/main
+        
+        echo '=== Сборка успешно завершена! ==='
